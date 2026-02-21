@@ -1,0 +1,120 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Arqueo de Caja | PrestaPro{% endblock %}
+
+{% block content %}
+<div class="mb-5 animate-fade-in">
+    <div class="d-flex justify-content-between align-items-end">
+        <div>
+            <h2 class="fw-black m-0" style="letter-spacing: -0.04em;">Caja & Tesorería</h2>
+            <p class="text-muted fw-medium">Control de ingresos diarios y flujo de efectivo maestro.</p>
+        </div>
+        <div class="text-end">
+            <div class="small fw-black text-uppercase text-muted mb-1">Cierre Proyectado</div>
+            <div class="h3 fw-black text-success">${{ "{:,.2f}".format(total_hoy) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <!-- Resumen de Movimientos -->
+    <div class="col-md-4">
+        <div class="glass-card bg-dark text-white p-4 border-0 h-100" style="background: #0f172a !important; box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.5);">
+            <h6 class="text-white-50 fw-black text-uppercase mb-4" style="font-size: 0.65rem; letter-spacing: 0.15em;">Balance Operativo (Hoy)</h6>
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="bg-success bg-opacity-20 p-3 rounded-circle text-success">
+                    <i class="fa-solid fa-arrow-down-long fs-4"></i>
+                </div>
+                <div>
+                    <div class="small fw-bold">Entradas Netas</div>
+                    <div class="h3 fw-black m-0">${{ "{:,.2f}".format(total_hoy) }}</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-3 mb-4 opacity-50">
+                <div class="bg-danger bg-opacity-20 p-3 rounded-circle text-danger">
+                    <i class="fa-solid fa-arrow-up-long fs-4"></i>
+                </div>
+                <div>
+                    <div class="small fw-bold">Salidas (Gastos/Desembolsos)</div>
+                    <div class="h3 fw-black m-0">$0.00</div>
+                </div>
+            </div>
+            <hr class="border-white border-opacity-10 my-4">
+            <button class="btn btn-accent w-100 rounded-pill fw-black py-3 shadow-lg">Ejecutar Cierre de Caja</button>
+        </div>
+    </div>
+
+    <!-- Lista de Pagos de Hoy -->
+    <div class="col-md-8">
+        <div class="glass-card p-0 border-0 overflow-hidden h-100 shadow-sm">
+            <div class="p-4 px-5 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-black text-uppercase text-muted" style="font-size: 0.7rem; letter-spacing: 0.1em;">Transacciones del Periodo Actual</h6>
+                <span class="badge bg-primary rounded-pill px-3">{{ pagos|length }} Movimientos</span>
+            </div>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-hover align-middle mb-0">
+                    <tbody>
+                        {% for pago in pagos %}
+                        <tr>
+                            <td class="ps-5 py-3">
+                                <div class="fw-black text-dark">PAG-{{ loop.index }}</div>
+                                <div class="text-muted small">{{ pago.fecha_pago.strftime('%H:%M %p') }}</div>
+                            </td>
+                            <td class="py-3">
+                                <div class="fw-bold">{{ pago.prestamo.cliente.nombre_completo }}</div>
+                                <div class="small text-muted">Ref: {{ pago.prestamo.numero_prestamo }}</div>
+                            </td>
+                            <td class="py-3">
+                                <span class="badge bg-light text-dark border fw-bold">{{ pago.metodo_pago.name }}</span>
+                            </td>
+                            <td class="py-3 text-end pe-5">
+                                <div class="fw-black text-success" style="font-size: 1.1rem;">+${{ "{:,.2f}".format(pago.monto_recibido or 0) }}</div>
+                                <div class="small text-muted" style="font-size: 0.65rem;">Capital: ${{ "{:,.2f}".format(pago.aplicaciones[0].capital_aplicado if (pago.aplicaciones and pago.aplicaciones[0]) else 0) }}</div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="py-5 text-center text-muted fst-italic">No hay movimientos registrados hoy.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="glass-card border-0 p-0 overflow-hidden">
+            <div class="p-4 px-5 border-bottom">
+                <h5 class="fw-black m-0">Historial Diario Maestro</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="text-muted fw-black" style="font-size: 0.65rem; text-transform: uppercase;">
+                            <th class="ps-5 py-3">Fecha</th>
+                            <th class="py-3">Cliente</th>
+                            <th class="py-3">Préstamo</th>
+                            <th class="py-3">Método</th>
+                            <th class="py-3 text-end pe-5">Monto Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in historial %}
+                        <tr>
+                            <td class="ps-5 py-3 fw-bold text-dark">{{ h.fecha_pago.strftime('%d %b, %Y') }}</td>
+                            <td class="py-3 fw-medium">{{ h.prestamo.cliente.nombre_completo }}</td>
+                            <td class="py-3"><span class="badge bg-primary bg-opacity-10 text-primary fw-black">#{{ h.prestamo.numero_prestamo }}</span></td>
+                            <td class="py-3"><span class="small fw-bold text-muted">{{ h.metodo_pago.name }}</span></td>
+                            <td class="py-3 text-end pe-5 fw-black text-dark">${{ "{:,.2f}".format(h.monto_recibido) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

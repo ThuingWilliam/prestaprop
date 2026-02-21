@@ -1,0 +1,312 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Préstamo #{{ prestamo.numero_prestamo }} | PrestaPro{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in text-main">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h2 class="fw-black m-0" style="letter-spacing: -0.04em;">Resumen del Préstamo</h2>
+            <p class="text-muted fw-medium">Análisis detallado de la operación #{{ prestamo.numero_prestamo }}</p>
+        </div>
+        <div class="d-flex gap-3">
+            {% if session.get('rol') == 'ADMINISTRADOR' %}
+            <button class="btn btn-warning rounded-pill px-4 py-3 fw-black shadow-lg" data-bs-toggle="modal" data-bs-target="#ajustarTasaModal">
+                <i class="fa-solid fa-percent me-2"></i>Ajustar Tasa
+            </button>
+            {% endif %}
+            <button class="btn btn-success rounded-pill px-5 py-3 fw-black shadow-lg" data-bs-toggle="modal" data-bs-target="#registrarPagoModal">
+                <i class="fa-solid fa-money-bill-transfer me-2"></i>Cobrar Cuota
+            </button>
+            <a href="{{ url_for('prestamos.descargar_resumen', id=prestamo.id) }}" class="btn btn-white border rounded-pill px-4 py-3 fw-bold shadow-sm">
+                <i class="fa-solid fa-print"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Perfil del Cliente & Resumen Maestro -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="nextgen-card bg-mesh-dark text-white h-100 p-4 shadow-lg border-0">
+                <div class="text-center mb-4">
+                    <div class="user-avatar mx-auto mb-3 shadow-2xl border border-white border-opacity-20" style="width: 80px; height: 80px; font-size: 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+                        {{ (prestamo.cliente.primer_nombre or 'U')[0] | upper }}{{ (prestamo.cliente.apellido or 'P')[0] | upper }}
+                    </div>
+                    <h4 class="fw-black m-0">{{ prestamo.cliente.nombre_completo }}</h4>
+                    <span class="badge bg-white bg-opacity-10 text-white rounded-pill px-3 py-2 mt-2 fw-bold" style="font-size: 0.7rem; border: 1px solid rgba(255,255,255,0.2);">
+                        <i class="fa-solid fa-id-badge me-1"></i> {{ prestamo.cliente.numero_id }}
+                    </span>
+                </div>
+                <div class="mt-4 pt-4 border-top border-white border-opacity-10">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small fw-bold opacity-50">TELÉFONO</span>
+                        <span class="small fw-black">{{ prestamo.cliente.telefono or 'N/A' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="small fw-bold opacity-50">PRODUCTO</span>
+                        <span class="small fw-black text-accent">{{ prestamo.producto.nombre if prestamo.producto else 'Crédito Personal' }}</span>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a href="{{ url_for('clientes.ver_cliente', id=prestamo.cliente.id) }}" class="btn btn-primary w-100 rounded-pill fw-black py-2 shadow-lg">
+                        Expediente Cliente <i class="fa-solid fa-arrow-right-long ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="glass-card h-100 p-4 border-0 shadow-lg">
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                    <div>
+                        <h5 class="fw-black m-0">Estado de Cuenta Ejecutivo</h5>
+                        <p class="small text-muted fw-bold m-0">VALORES LIQUIDADOS A LA FECHA</p>
+                    </div>
+                    {% set liquidado = (prestamo.total_pagado / (prestamo.total_a_pagar or 1)) * 100 %}
+                    <div class="text-end">
+                        <div class="h2 fw-black text-primary m-0">{{ liquidado|round|int }}%</div>
+                        <div class="small fw-bold text-muted" style="font-size: 0.6rem;">RECUPERADO</div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 bg-light border-start border-4 border-dark">
+                            <div class="small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.65rem;">Capital Vigente</div>
+                            <div class="h3 fw-black m-0">${{ "{:,.2f}".format(prestamo.saldo_capital_dinamico or 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 bg-primary bg-opacity-5 border-start border-4 border-primary">
+                            <div class="small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.65rem;">Total Pendiente</div>
+                            <div class="h3 fw-black text-primary m-0">${{ "{:,.2f}".format(prestamo.monto_pendiente_total_dinamico or 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 bg-info bg-opacity-10 border-start border-4 border-info">
+                            <div class="small fw-bold text-info text-uppercase mb-1" style="font-size: 0.65rem;">Interés proyectado</div>
+                            <div class="h4 fw-black text-info m-0">${{ "{:,.2f}".format(prestamo.saldo_interes_dinamico or 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 bg-danger bg-opacity-5 border-start border-4 border-danger">
+                            <div class="small fw-bold text-danger text-uppercase mb-1" style="font-size: 0.65rem;">Mora Pendiente</div>
+                            <div class="h4 fw-black text-danger m-0">${{ "{:,.2f}".format(prestamo.saldo_mora_dinamico or 0) }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <div class="progress shadow-inset" style="height: 12px; border-radius: 20px; background: #f1f5f9;">
+                        <div class="progress-bar bg-mesh-blue animate-progress" style="width: {{ liquidado }}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 small fw-bold text-muted">
+                        <span>Pagado: ${{ "{:,.2f}".format(prestamo.total_pagado) }}</span>
+                        <span>Total: ${{ "{:,.2f}".format(prestamo.total_a_pagar) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ficha Técnica de Apoyo -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-12">
+            <div class="glass-card p-4 bg-dark text-white border-0 shadow-lg" style="background: #1e293b !important;">
+                <div class="row align-items-center">
+                    <div class="col-md-3 border-end border-white border-opacity-10 text-center text-md-start">
+                        <h6 class="text-white-50 small fw-bold text-uppercase mb-2">Modalidad</h6>
+                        <div class="h5 fw-black text-accent m-0">{{ prestamo.frecuencia.name }}</div>
+                    </div>
+                    <div class="col-md-3 border-end border-white border-opacity-10 ps-md-4 text-center text-md-start">
+                        <h6 class="text-white-50 small fw-bold text-uppercase mb-2">Tasa Anual</h6>
+                        <div class="h5 fw-black text-white m-0">{{ ((prestamo.tasa_interes_anual or 0) * 100)|int }}%</div>
+                    </div>
+                    <div class="col-md-3 border-end border-white border-opacity-10 ps-md-4 text-center text-md-start">
+                        <h6 class="text-white-50 small fw-bold text-uppercase mb-2">Cuota a Pagar</h6>
+                        <div class="h5 fw-black text-accent m-0">${{ "{:,.2f}".format(prestamo.monto_cuota or 0) }}</div>
+                        <div class="text-white-50 mt-1" style="font-size: 0.6rem;">(Cap + Int)</div>
+                    </div>
+                    <div class="col-md-3 ps-md-4 text-center text-md-start">
+                        <h6 class="text-white-50 small fw-bold text-uppercase mb-2">Status Operativo</h6>
+                        <span class="badge {% if prestamo.estado == 'ACTIVO' %}bg-success{% else %}bg-primary{% endif %} rounded-pill px-3 fw-bold">{{ prestamo.estado }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Amortización Real con Desglose de Pagos -->
+    <div class="glass-card p-0 border-0 overflow-hidden shadow-lg mb-5">
+        <div class="p-4 px-5 bg-light border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-black text-uppercase text-muted" style="font-size: 0.75rem; letter-spacing: 0.1em;">Plan de Pagos y Cuotas</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr class="text-muted fw-black" style="font-size: 0.6rem; text-transform: uppercase;">
+                        <th class="ps-5 py-4">#</th>
+                        <th class="py-4">Vencimiento</th>
+                        <th class="py-4 text-end">Prog. (Cap+Int)</th>
+                        <th class="py-4 text-end text-success">Pagado (Cap+Int)</th>
+                        <th class="py-4 text-end text-danger">Mora Pagada</th>
+                        <th class="py-4 text-center">Estado</th>
+                        <th class="pe-5 py-4 text-end">Pendiente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in prestamo.tabla_pagos %}
+                    <tr class="{% if c.estado.value == 'VENCIDA' %}bg-danger bg-opacity-5{% endif %}">
+                        <td class="ps-5 py-4"><span class="fw-black text-dark">{{ c.numero_cuota }}</span></td>
+                        <td class="py-4 fw-bold">{{ c.fecha_vencimiento.strftime('%d/%m/%Y') }}</td>
+                        <td class="py-4 text-end">
+                            <div class="fw-bold text-dark">${{ "{:,.2f}".format(c.total_cuota) }}</div>
+                            <div class="small text-muted" style="font-size: 0.65rem;">C:{{ "{:,.0f}".format(c.capital_cuota) }}+I:{{ "{:,.0f}".format(c.interes_cuota) }}</div>
+                        </td>
+                        <td class="py-4 text-end text-success">
+                            <div class="fw-bold">${{ "{:,.2f}".format(c.capital_pagado + c.interes_pagado) }}</div>
+                            <div class="small opacity-75" style="font-size: 0.65rem;">C:{{ "{:,.0f}".format(c.capital_pagado) }}+I:{{ "{:,.0f}".format(c.interes_pagado) }}</div>
+                        </td>
+                        <td class="py-4 text-end text-danger fw-bold">${{ "{:,.2f}".format(c.mora_pagada) }}</td>
+                        <td class="py-4 text-center">
+                            <span class="badge {% if c.estado.value == 'PAGADA' %}bg-success-subtle text-success{% elif c.estado.value == 'VENCIDA' %}bg-danger-subtle text-danger{% elif c.estado.value == 'PARCIAL' %}bg-warning-subtle text-warning{% else %}bg-light text-muted border{% endif %} rounded-pill px-3" style="font-size: 0.65rem;">
+                                {{ c.estado }}
+                            </span>
+                        </td>
+                        <td class="pe-5 py-4 text-end">
+                            {% set pendiente = (c.total_cuota + c.monto_mora) - (c.capital_pagado + c.interes_pagado + c.mora_pagada) %}
+                            <div class="fw-black {% if pendiente > 0 %}text-danger{% else %}text-muted{% endif %}">${{ "{:,.2f}".format(pendiente) }}</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Historial de Recaudaciones Recientes -->
+    <div class="glass-card p-0 border-0 overflow-hidden shadow-lg mb-5">
+        <div class="p-4 px-5 bg-dark text-white d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-black text-uppercase tracking-widest" style="font-size: 0.75rem;">Cobros Realizados</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr class="text-muted fw-black" style="font-size: 0.6rem; text-transform: uppercase;">
+                        <th class="ps-5 py-4">Fecha</th>
+                        <th class="py-4">Monto Cobrado</th>
+                        <th class="py-4 text-end text-primary">A Capital</th>
+                        <th class="py-4 text-end text-success">A Interés</th>
+                        <th class="py-4 text-end text-danger">A Mora</th>
+                        <th class="py-4 text-end">Método / Ref</th>
+                        <th class="pe-5 py-4 text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pago in prestamo.pagos | sort(attribute='fecha_pago', reverse=True) %}
+                    <tr>
+                        <td class="ps-5 py-4">
+                            <div class="fw-bold text-dark">{{ pago.fecha_pago.strftime('%d %b, %Y') }}</div>
+                            <div class="text-muted small">{{ pago.creado_en.strftime('%H:%M') }}</div>
+                        </td>
+                        <td class="py-4 fw-black text-dark" style="font-size: 1.1rem;">${{ "{:,.2f}".format(pago.monto_recibido) }}</td>
+                        <td class="py-4 text-end text-primary fw-bold">${{ "{:,.2f}".format(pago.aplicado_capital) }}</td>
+                        <td class="py-4 text-end text-success fw-bold">${{ "{:,.2f}".format(pago.aplicado_interes) }}</td>
+                        <td class="py-4 text-end text-danger fw-bold">${{ "{:,.2f}".format(pago.aplicado_mora) }}</td>
+                        <td class="py-4 text-end">
+                            <div class="small fw-black text-uppercase text-muted">{{ pago.metodo_pago }}</div>
+                            <div class="small text-muted">{{ pago.numero_referencia or '—' }}</div>
+                        </td>
+                        <td class="pe-5 py-4 text-end">
+                            <a href="{{ url_for('prestamos.descargar_recibo', pago_id=pago.id) }}" class="btn btn-sm btn-white border rounded-pill shadow-sm fw-bold">
+                                <i class="fa-solid fa-file-pdf text-danger me-1"></i> Recibo
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="py-5 text-center text-muted fst-italic">No se registran recaudaciones para este crédito.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Modal Registrar Pago "Elite" -->
+<div class="modal fade" id="registrarPagoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-modal p-0 border-0 shadow-2xl overflow-hidden">
+            <div class="modal-header bg-dark text-white p-4 px-5 border-0">
+                <div>
+                    <h5 class="modal-title fw-black m-0">Cobrar Cuota</h5>
+                    <p class="small text-white-50 m-0">Confirmación de ingreso a bóveda.</p>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 px-5">
+                <form action="{{ url_for('prestamos.registrar_pago') }}" method="POST">
+                    <input type="hidden" name="prestamo_id" value="{{ prestamo.id }}">
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Capital a Recibir ($)</label>
+                        <input type="number" step="0.01" name="monto" class="form-control form-control-lg bg-light border-0 fw-black text-primary" value="{{ prestamo.proximo_monto_a_pagar }}" required>
+                        <div class="form-text small fw-bold text-danger">Saldo pendiente hoy: ${{ "{:,.2f}".format(prestamo.proximo_monto_a_pagar) }}</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Instrumento de Pago</label>
+                        <select name="metodo_pago" class="form-select form-select-lg bg-light border-0 fw-bold">
+                            <option value="EFECTIVO">Efectivo (Cash)</option>
+                            <option value="TRANSFERENCIA" selected>Transferencia Bancaria</option>
+                            <option value="CHEQUE">Cheque Certificado</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Referencia Bancaria</label>
+                        <input type="text" name="referencia" class="form-control form-control-lg bg-light border-0 fw-bold" placeholder="ID de transacción">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-black shadow-lg mb-3">Confirmar y Aplicar Pago</button>
+                    <button type="button" class="btn btn-light w-100 py-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar Operación</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajustar Tasa -->
+<div class="modal fade" id="ajustarTasaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-modal p-0 border-0 shadow-2xl overflow-hidden">
+            <div class="modal-header bg-warning text-dark p-4 px-5 border-0">
+                <div>
+                    <h5 class="modal-title fw-black m-0">Reajuste de Tasa Bancaria</h5>
+                    <p class="small text-dark-50 m-0">Afecta el interés de las cuotas programadas.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 px-5">
+                <form action="{{ url_for('prestamos.ajustar_tasa') }}" method="POST">
+                    <input type="hidden" name="prestamo_id" value="{{ prestamo.id }}">
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Nueva Tasa Anual (%)</label>
+                        <input type="number" step="0.01" name="nueva_tasa" class="form-control form-control-lg bg-light border-0 fw-black text-warning" value="{{ (prestamo.tasa_interes_anual * 100)|int }}" required>
+                        <div class="form-text small fw-bold">Tasa actual: {{ (prestamo.tasa_interes_anual * 100)|int }}%</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Criterio de Aplicación</label>
+                        <select name="modo_ajuste" class="form-select form-select-lg bg-light border-0 fw-bold">
+                            <option value="FUTURE_ONLY" selected>Solo cuotas pendientes (Recomendado)</option>
+                            <option value="ALL_PERIODS">Todo el préstamo (Retroactivo)</option>
+                        </select>
+                        <div class="form-text small">"Todo el préstamo" recalcula el interés incluso de cuotas ya pagadas o vencidas.</div>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100 py-3 rounded-pill fw-black shadow-lg mb-3">Ejecutar Reajuste</button>
+                    <button type="button" class="btn btn-light w-100 py-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

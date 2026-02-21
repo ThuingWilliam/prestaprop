@@ -1,0 +1,505 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Dashboard Inteligente | PrestaPro{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.3);
+    }
+
+    .dashboard-header {
+        margin-bottom: 3rem;
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .card-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #1e293b;
+    }
+
+    .badge-soft {
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.7rem;
+    }
+
+    canvas { max-width: 100% !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header animate-fade-in">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="fw-black mb-1" style="font-size: 2.5rem; letter-spacing: -0.05em;">Hola, {{ session.get('usuario_nombre', 'Admin') }}</h1>
+            <p class="text-muted fw-medium">Aquí tienes el resumen operativo de hoy, {{ hoy.strftime('%d de %B') }}.</p>
+        </div>
+        <div class="d-none d-md-block">
+            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold">
+                <i class="fa-solid fa-clock shadow-sm me-2"></i>Sesión Segura Activa
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- KPIs Simplificados -->
+<div class="kpi-grid">
+    {% if session.get('rol') == 'ADMINISTRADOR' %}
+    <!-- Admin View -->
+    <div class="nextgen-card">
+        <div class="card-icon-box bg-mesh-blue text-white shadow-lg">
+            <i class="fa-solid fa-vault fs-5"></i>
+        </div>
+        <div class="stat-label">Cartera Activa</div>
+        <div class="stat-value">${{ "{:,.0f}".format(capital_activo) }}</div>
+        <div class="mt-3 d-flex align-items-center gap-2">
+            <span class="badge-soft bg-success bg-opacity-10 text-success">+4.2%</span>
+            <span class="text-muted small fw-medium">vs mes pasado</span>
+        </div>
+    </div>
+
+    <div class="nextgen-card">
+        <div class="card-icon-box bg-mesh-green text-white shadow-lg">
+            <i class="fa-solid fa-chart-line fs-5"></i>
+        </div>
+        <div class="stat-label">Eficiencia Cobro</div>
+        <div class="stat-value">{{ "{:,.1f}".format(eficiencia_cobro) }}%</div>
+        <div class="mt-3 d-flex align-items-center gap-2">
+            <div class="progress flex-grow-1" style="height: 6px; border-radius: 10px;">
+                <div class="progress-bar bg-success" style="width: {{ eficiencia_cobro }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nextgen-card">
+        <div class="card-icon-box bg-mesh-dark text-white shadow-lg">
+            <i class="fa-solid fa-money-bill-trend-up fs-5"></i>
+        </div>
+        <div class="stat-label">Total Prestado</div>
+        <div class="stat-value">${{ "{:,.0f}".format(monto_total_prestado) }}</div>
+        <div class="mt-3 text-muted small fw-medium">Capital original colocado</div>
+    </div>
+
+    <div class="nextgen-card">
+        <div class="card-icon-box bg-mesh-dark text-white shadow-lg">
+            <i class="fa-solid fa-users fs-5"></i>
+        </div>
+        <div class="stat-label">Cantidad Clientes</div>
+        <div class="stat-value">{{ total_clientes }}</div>
+        <div class="mt-3 text-muted small fw-medium">Registrados en sistema</div>
+    </div>
+
+    <div class="nextgen-card">
+        <div class="card-icon-box bg-mesh-red text-white shadow-lg">
+            <i class="fa-solid fa-triangle-exclamation fs-5"></i>
+        </div>
+        <div class="stat-label">Riesgo Capital</div>
+        <div class="stat-value">${{ "{:,.0f}".format(riesgo_capital) }}</div>
+        <div class="mt-3">
+            <a href="{{ url_for('main.vencidos') }}" class="text-danger small fw-bold text-decoration-none">
+                {{ prestamos_en_mora }} casos urgentes <i class="fa-solid fa-chevron-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+    {% else %}
+    <!-- User View (Oficial) -->
+    <div class="nextgen-card">
+        <div class="card-icon-box bg-mesh-blue text-white shadow-lg">
+            <i class="fa-solid fa-hand-holding-dollar fs-5"></i>
+        </div>
+        <div class="stat-label">Mis Cobros Hoy</div>
+        <div class="stat-value">${{ "{:,.2f}".format(mis_cobros_hoy or 0) }}</div>
+        <div class="mt-3 text-muted small fw-medium">Recaudación del día</div>
+    </div>
+
+    <div class="nextgen-card">
+        <div class="card-icon-box bg-mesh-green text-white shadow-lg">
+            <i class="fa-solid fa-bullseye fs-5"></i>
+        </div>
+        <div class="stat-label">Meta Semanal</div>
+        <div class="stat-value">{{ "{:,.1f}".format(oficial_stats.meta_semanal.porcentaje) if oficial_stats else 0 }}%</div>
+        <div class="mt-3 d-flex align-items-center gap-2">
+            <div class="progress flex-grow-1" style="height: 6px; border-radius: 10px;">
+                <div class="progress-bar bg-success" style="width: {{ oficial_stats.meta_semanal.porcentaje if oficial_stats else 0 }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nextgen-card">
+        <div class="card-icon-box bg-mesh-dark text-white shadow-lg">
+            <i class="fa-solid fa-users fs-5"></i>
+        </div>
+        <div class="stat-label">Nuevos Clientes</div>
+        <div class="stat-value">{{ mis_clientes_mes }}</div>
+        <div class="mt-3 text-muted small fw-medium">Registrados este mes</div>
+    </div>
+    {% endif %}
+
+    <div class="nextgen-card">
+        <div class="card-icon-box bg-light text-dark border">
+            <i class="fa-solid fa-calendar-day fs-5"></i>
+        </div>
+        <div class="stat-label">Próximos Vencimientos</div>
+        <div class="stat-value">Ver Agenda</div>
+        <div class="mt-3">
+            <a href="{{ url_for('prestamos.agenda') }}" class="btn btn-sm btn-dark w-100 rounded-pill fw-bold">Gestionar</a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-lg-8">
+        <div class="chart-box shadow-sm border-0 animate-fade-in" style="background: linear-gradient(to bottom right, #ffffff, #f8fafc);">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h5 class="fw-black m-0" style="color: #1e293b;">Colocación Mensual</h5>
+                    <p class="small text-muted fw-medium m-0">Capital desembolsado por mes</p>
+                </div>
+                <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold">Dinamico</div>
+            </div>
+            <div style="height: 350px;">
+                <canvas id="nextGenChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="chart-box shadow-sm border-0 d-flex flex-column justify-content-between animate-fade-in" style="background: white;">
+            <div>
+                <h5 class="fw-black mb-1" style="color: #1e293b;">Estado de Cartera</h5>
+                <p class="small text-muted fw-medium mb-4">Distribución de préstamos</p>
+                <div class="position-relative" style="height: 200px;">
+                    <canvas id="donutHealthChart"></canvas>
+                    <div class="position-absolute top-50 start-50 translate-middle text-center">
+                        <div class="h3 fw-black m-0" id="totalLoansLabel">{{ total_prestamos }}</div>
+                        <div class="small text-muted fw-bold">TOTAL</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="small fw-bold text-muted">Vigentes</span>
+                    <span class="small fw-black text-primary">{{ salud_valores[0] if salud_valores else 0 }}</span>
+                </div>
+                <div class="progress mb-3" style="height: 6px; border-radius: 10px; background: #f1f5f9;">
+                    <div class="progress-bar bg-primary shadow-sm" style="width: {{ (salud_valores[0] / total_prestamos * 100) if total_prestamos > 0 else 0 }}%"></div>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="small fw-bold text-muted">En Mora</span>
+                    <span class="small fw-black text-danger">{{ salud_valores[1] if salud_valores else 0 }}</span>
+                </div>
+                <div class="progress" style="height: 6px; border-radius: 10px; background: #f1f5f9;">
+                    <div class="progress-bar bg-danger shadow-sm" style="width: {{ (salud_valores[1] / total_prestamos * 100) if total_prestamos > 0 else 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secciones para Usuarios (Oficiales): Agenda y Riesgo -->
+{% if session.get('rol') != 'ADMINISTRADOR' and oficial_stats %}
+<div class="row g-4 mb-5 animate-fade-in">
+    <!-- Agenda de Hoy -->
+    <div class="col-lg-6">
+        <div class="glass-card shadow-sm h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-black m-0"><i class="fa-solid fa-calendar-check text-primary me-2"></i>Agenda de Cobros: Hoy</h5>
+                <span class="badge bg-primary rounded-pill">{{ oficial_stats.agenda_hoy|length }} pendientes</span>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for c in oficial_stats.agenda_hoy %}
+                <div class="list-group-item bg-transparent px-0 py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">{{ c.prestamo.cliente.nombre_completo }}</div>
+                        <div class="small text-muted">{{ c.prestamo.numero_prestamo }} | Cuota #{{ c.numero_cuota }}</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-black text-dark">${{ "{:,.2f}".format(c.total_cuota + c.monto_mora) }}</div>
+                        <a href="{{ url_for('prestamos.ver', id=c.prestamo.id) }}" class="btn btn-sm btn-outline-primary rounded-pill fw-bold mt-1">Cobrar</a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="py-4 text-center text-muted">No tienes cobros programados para hoy.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Radar de Riesgo -->
+    <div class="col-lg-6">
+        <div class="glass-card shadow-sm h-100 border-start border-4 border-danger">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-black m-0"><i class="fa-solid fa-radiation text-danger me-2"></i>Radar de Riesgo Preventivo</h5>
+                <span class="badge bg-danger rounded-pill">Alerta 1-3 días</span>
+            </div>
+            <p class="small text-muted mb-4">Clientes con atraso leve. Actúa rápido para evitar la mora profunda.</p>
+            <div class="list-group list-group-flush">
+                {% for c in oficial_stats.riesgo_proximo %}
+                <div class="list-group-item bg-transparent px-0 py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">{{ c.prestamo.cliente.nombre_completo }}</div>
+                        <div class="small text-danger fw-bold">{{ (hoy - c.fecha_vencimiento).days }} días de retraso</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-black text-danger">${{ "{:,.2f}".format(c.total_cuota + c.monto_mora) }}</div>
+                        <a href="tel:{{ c.prestamo.cliente.telefono }}" class="btn btn-sm btn-danger rounded-pill fw-bold mt-1"><i class="fa-solid fa-phone"></i> Llamar</a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="py-4 text-center text-muted">¡Excelente! No tienes clientes en riesgo leve.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Nueva Sección: Análisis de recurrencia (Solo Admin) -->
+{% if session.get('rol') == 'ADMINISTRADOR' %}
+<div class="row g-4 mb-5">
+    <div class="col-12">
+        <div class="nextgen-card border-0 shadow-sm" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="p-3 rounded-4 bg-white bg-opacity-10 text-white">
+                            <i class="fa-solid fa-users-viewfinder fs-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-white fw-black m-0">Fidelidad de Clientes</h4>
+                            <p class="text-white text-opacity-50 small m-0">Clientes con más de un préstamo activo</p>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-4 mt-4">
+                        <div>
+                            <div class="text-white text-opacity-50 small fw-bold text-uppercase">Clientes Recurrentes</div>
+                            <div class="h2 text-white fw-black m-0">{{ clientes_multi }}</div>
+                        </div>
+                        <div class="vr bg-white bg-opacity-20"></div>
+                        <div>
+                            <div class="text-white text-opacity-50 small fw-bold text-uppercase">Capital en Riesgo Preferencial</div>
+                            <div class="h2 text-primary fw-black m-0">${{ "{:,.0f}".format(monto_multi) }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5 text-end d-none d-md-block">
+                    <div class="p-4 rounded-4 bg-white bg-opacity-5 border border-white border-opacity-10">
+                        <p class="text-white small fw-medium mb-3">Tener clientes recurrentes indica confianza en tu servicio.</p>
+                        <div class="h1 text-white fw-black m-0">{{ "{:,.0f}".format((clientes_multi / total_clientes * 100) if total_clientes > 0 else 0) }}%</div>
+                        <div class="text-primary small fw-bold">ÍNDICE DE FIDELIDAD</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if session.get('rol') == 'ADMINISTRADOR' %}
+<div class="row g-4 mt-2">
+    <div class="col-lg-7">
+        <div class="chart-box shadow-sm py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-black m-0">Operaciones en Tiempo Real</h5>
+                <a href="{{ url_for('main.reporte_maestro') }}" class="btn btn-sm btn-light rounded-pill px-3 fw-bold">Ver Todo</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr class="text-muted" style="font-size: 0.75rem; border-bottom: 2px solid #f8fafc;">
+                            <th class="py-3">CLIENTE</th>
+                            <th class="py-3">PRODUCTO</th>
+                            <th class="py-3 text-end">MONTO</th>
+                            <th class="py-3 text-center">ESTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in ultimos_prestamos %}
+                        <tr>
+                            <td class="py-3">
+                                <div class="fw-bold">{{ p.cliente.nombre_completo }}</div>
+                                <div class="text-muted small">ID: {{ p.cliente.numero_id }}</div>
+                            </td>
+                            <td class="py-3 small fw-medium">{{ p.producto.nombre if p.producto else 'Crédito Personal' }}</td>
+                            <td class="py-3 text-end fw-black">${{ "{:,.2f}".format(p.monto_capital) }}</td>
+                            <td class="py-3 text-center">
+                                <span class="badge {% if p.estado == 'ACTIVO' %}bg-success{% else %}bg-danger{% endif %} bg-opacity-10 {% if p.estado == 'ACTIVO' %}text-success{% else %}text-danger{% endif %} rounded-pill px-3">
+                                    {{ p.estado }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-5">
+        <div class="chart-box shadow-sm py-4 bg-dark text-white border-0" style="background: #1e293b !important;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h6 class="fw-black m-0 text-uppercase tracking-widest" style="font-size: 0.7rem;">Bitácora de Auditoría</h6>
+                <a href="{{ url_for('main.auditoria') }}" class="small text-accent fw-bold text-decoration-none">Ver Historial</a>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for log in bitacora %}
+                <div class="list-group-item bg-transparent border-white border-opacity-10 px-0 py-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="d-flex gap-2">
+                            <div class="user-avatar" style="width: 24px; height: 24px; font-size: 0.6rem;">
+                                {{ (log.cambiado_por_usuario.nombre_completo or 'S')[0] | upper if log.cambiado_por_usuario else 'S' }}
+                            </div>
+                            <div>
+                                <div class="fw-bold small">{{ log.cambiado_por_usuario.nombre if log.cambiado_por_usuario else 'SISTEMA' }}</div>
+                                <div class="text-white-50" style="font-size: 0.65rem;">{{ log.accion }} en {{ log.tabla }}</div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="small fw-bold opacity-50" style="font-size: 0.6rem;">{{ log.cambiado_en.strftime('%H:%M') }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="small text-white-50 text-center py-4">Sin actividad reciente.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+    Chart.defaults.color = "#64748b";
+
+    // Chart Principal: Gradientes y Estética Next-Gen
+    const ctx = document.getElementById('nextGenChart').getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, 400);
+    grad.addColorStop(0, 'rgba(67, 97, 238, 0.2)');
+    grad.addColorStop(1, 'rgba(67, 97, 238, 0)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ mensual_labels|tojson }},
+            datasets: [{
+                label: 'Desembolsado',
+                data: {{ mensual_data|tojson }},
+                borderColor: '#4361ee',
+                borderWidth: 4,
+                fill: true,
+                backgroundColor: grad,
+                tension: 0.4,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#4361ee',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 6,
+                        font: { size: 11, weight: 'bold' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    cornerRadius: 12,
+                    titleFont: { size: 14, weight: 'bold' },
+                    callbacks: {
+                        label: function(context) {
+                            return ' $' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9' }, 
+                    ticks: { callback: v => '$' + v.toLocaleString() } 
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // Donut Chart
+    const ctx2 = document.getElementById('donutHealthChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ['Vigente', 'En Mora', 'Completado'],
+            datasets: [{
+                data: {{ salud_valores|tojson if salud_valores else [0,0,0] }},
+                backgroundColor: ['#4361ee', '#ef476f', '#06d6a0'],
+                borderWidth: 0,
+                borderRadius: 10
+            }]
+        },
+        options: {
+            cutout: '80%',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: { size: 10, weight: 'bold' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    cornerRadius: 12
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

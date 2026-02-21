@@ -1,0 +1,81 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Análisis de Cartera por Antigüedad | PrestaPro{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <div class="mb-5">
+        <h2 class="fw-black m-0">Análisis de Cartera (Aging Report)</h2>
+        <p class="text-muted fw-medium">Desglose de deuda vencida por tramos de tiempo.</p>
+    </div>
+
+    <div class="kpi-grid mb-5">
+        <div class="nextgen-card">
+            <div class="stat-label">Deuda Total Vencida</div>
+            <div class="stat-value text-danger">${{ "{:,.2f}".format(report.total) }}</div>
+        </div>
+        <div class="nextgen-card">
+            <div class="stat-label">Tramo Crítico (60+)</div>
+            <div class="stat-value text-dark">${{ "{:,.2f}".format(report['60+']) }}</div>
+            <div class="small text-muted fw-bold">Pérdida potencial alta</div>
+        </div>
+    </div>
+
+    <div class="glass-card p-0 border-0 overflow-hidden shadow-lg">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr class="text-muted fw-black" style="font-size: 0.7rem; text-transform: uppercase;">
+                        <th class="ps-5 py-4">Tramo de Antigüedad</th>
+                        <th class="py-4 text-end">Monto Pendiente</th>
+                        <th class="py-4 text-center">Nivel de Riesgo</th>
+                        <th class="pe-5 py-4 text-end">Participación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="ps-5 py-4 fw-bold">1 - 15 Días</td>
+                        <td class="py-4 text-end fw-black">${{ "{:,.2f}".format(report['1-15']) }}</td>
+                        <td class="py-4 text-center">
+                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">LEVE</span>
+                        </td>
+                        <td class="pe-5 py-4 text-end fw-bold">
+                            {{ "{:,.1f}".format(report['1-15'] / report.total * 100) if report.total > 0 else 0 }}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="ps-5 py-4 fw-bold">16 - 30 Días</td>
+                        <td class="py-4 text-end fw-black">${{ "{:,.2f}".format(report['16-30']) }}</td>
+                        <td class="py-4 text-center">
+                            <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3">MODERADO</span>
+                        </td>
+                        <td class="pe-5 py-4 text-end fw-bold">
+                            {{ "{:,.1f}".format(report['16-30'] / report.total * 100) if report.total > 0 else 0 }}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="ps-5 py-4 fw-bold">31 - 60 Días</td>
+                        <td class="py-4 text-end fw-black">${{ "{:,.2f}".format(report['31-60']) }}</td>
+                        <td class="py-4 text-center">
+                            <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3">ALTO</span>
+                        </td>
+                        <td class="pe-5 py-4 text-end fw-bold">
+                            {{ "{:,.1f}".format(report['31-60'] / report.total * 100) if report.total > 0 else 0 }}%
+                        </td>
+                    </tr>
+                    <tr class="bg-light">
+                        <td class="ps-5 py-4 fw-bold">Más de 60 Días</td>
+                        <td class="py-4 text-end fw-black text-danger">${{ "{:,.2f}".format(report['60+']) }}</td>
+                        <td class="py-4 text-center">
+                            <span class="badge bg-dark text-white rounded-pill px-3">CRÍTICO</span>
+                        </td>
+                        <td class="pe-5 py-4 text-end fw-bold">
+                            {{ "{:,.1f}".format(report['60+'] / report.total * 100) if report.total > 0 else 0 }}%
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

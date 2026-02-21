@@ -1,0 +1,59 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Eficiencia de Cobro | PrestaPro{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <div class="mb-5">
+        <h2 class="fw-black m-0">Eficiencia de Cobro</h2>
+        <p class="text-muted fw-medium">Análisis de cumplimiento proyectado vs recaudado.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="glass-card p-4">
+                <h6 class="fw-bold text-muted mb-4">RENDIMIENTO MENSUAL (ACTUAL)</h6>
+                <div class="h1 fw-black text-primary mb-2">{{ "{:,.1f}".format(stats_mes.eficiencia) }}%</div>
+                <div class="progress mb-4" style="height: 12px; border-radius: 20px;">
+                    <div class="progress-bar bg-primary" style="width: {{ stats_mes.eficiencia }}%"></div>
+                </div>
+                <div class="d-flex justify-content-between small fw-bold">
+                    <span>Cobrado: ${{ "{:,.2f}".format(stats_mes.cobrado) }}</span>
+                    <span>Proyectado: ${{ "{:,.2f}".format(stats_mes.proyectado) }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="glass-card p-4">
+                <h6 class="fw-bold text-muted mb-4">RENDIMIENTO ANUAL (YTD)</h6>
+                <div class="h1 fw-black text-success mb-2">{{ "{:,.1f}".format(stats_anual.eficiencia) }}%</div>
+                <div class="progress mb-4" style="height: 12px; border-radius: 20px;">
+                    <div class="progress-bar bg-success" style="width: {{ stats_anual.eficiencia }}%"></div>
+                </div>
+                <div class="d-flex justify-content-between small fw-bold">
+                    <span>Cobrado: ${{ "{:,.2f}".format(stats_anual.cobrado) }}</span>
+                    <span>Proyectado: ${{ "{:,.2f}".format(stats_anual.proyectado) }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-5 glass-card p-4 bg-dark text-white border-0">
+        <div class="d-flex align-items-center gap-4">
+            <div class="p-3 bg-white bg-opacity-10 rounded-pill">
+                <i class="fa-solid fa-lightbulb text-warning fs-3"></i>
+            </div>
+            <div>
+                <h5 class="fw-black m-0">Consejo Estratégico</h5>
+                <p class="text-white text-opacity-75 m-0">
+                    {% if stats_mes.eficiencia < 85 %}
+                    Tu eficiencia este mes está por debajo del 85%. Te recomendamos revisar los préstamos en mora de 1-15 días para mejorar el flujo de caja.
+                    {% else %}
+                    ¡Excelente gestión! Tu eficiencia de cobro es óptima. Mantén el seguimiento preventivo para asegurar estos niveles.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

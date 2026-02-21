@@ -1,0 +1,265 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Rentabilidad de Cartera | PrestaPro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profit-header {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        border-radius: 30px;
+        padding: 3rem;
+        color: white;
+        margin-bottom: 2.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .profit-header::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(67, 97, 238, 0.15) 0%, rgba(67, 97, 238, 0) 70%);
+        border-radius: 50%;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: 24px;
+        padding: 2rem;
+        border: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+        height: 100%;
+        position: relative;
+    }
+
+    .bg-mesh-dark { 
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+        color: white !important;
+    }
+    
+    .bg-mesh-blue { background: linear-gradient(135deg, #4361ee 0%, #4cc9f0 100%) !important; color: white !important; }
+    .bg-mesh-green { background: linear-gradient(135deg, #06d6a0 0%, #b5e48c 100%) !important; color: white !important; }
+
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.05);
+    }
+
+    .icon-circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 250px;
+        width: 100%;
+    }
+
+    .glass-stat {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <!-- Header Hero Section -->
+    <div class="profit-header shadow-lg">
+        <div class="row align-items-center">
+            <div class="col-md-7">
+                <span class="badge bg-primary bg-opacity-20 text-primary mb-3 px-3 py-2 rounded-pill fw-bold">Análisis de Desempeño</span>
+                <h1 class="fw-black mb-2" style="font-size: 2.5rem; letter-spacing: -0.04em;">Rentabilidad Estratégica</h1>
+                <p class="text-white text-opacity-75 fw-medium mb-0">Visualiza la generación de valor real y el retorno de capital de tu cartera de préstamos.</p>
+            </div>
+            <div class="col-md-5 text-md-end mt-4 mt-md-0">
+                <div class="glass-stat d-inline-block text-start">
+                    <div class="small fw-bold text-white text-opacity-50 text-uppercase mb-1">Utilidad Total Realizada</div>
+                    <div class="h2 fw-black mb-0">${{ "{:,.2f}".format(stats.total_utilidad) }}</div>
+                    <div class="small text-success fw-bold mt-1"><i class="fa-solid fa-arrow-trend-up me-1"></i> Flujo positivo</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="row g-4 mb-5">
+        <!-- Breakdown Utilities -->
+        <div class="col-lg-8">
+            <div class="metric-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-black m-0">Composición de Ingresos</h5>
+                    <div class="small text-muted fw-bold">INTERESES VS MORA</div>
+                </div>
+                <div class="row g-4">
+                    <div class="col-md-7">
+                        <div class="chart-container">
+                            <canvas id="utilityDonutChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-5 d-flex flex-column justify-content-center">
+                        <div class="mb-4 d-flex align-items-center gap-3">
+                            <div class="icon-circle bg-primary bg-opacity-10 text-primary">
+                                <i class="fa-solid fa-percent"></i>
+                            </div>
+                            <div>
+                                <div class="small fw-bold text-muted text-uppercase">Intereses</div>
+                                <div class="h4 fw-black m-0">${{ "{:,.2f}".format(stats.interes_cobrado) }}</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="icon-circle bg-danger bg-opacity-10 text-danger">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div>
+                                <div class="small fw-bold text-muted text-uppercase">Mora Recuperada</div>
+                                <div class="h4 fw-black m-0">${{ "{:,.2f}".format(stats.mora_cobrada) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capital Status -->
+        <div class="col-lg-4">
+            <div class="metric-card bg-mesh-dark">
+                <h5 class="fw-black text-white mb-4">Estructura de Capital</h5>
+                <div class="chart-container" style="height: 200px;">
+                    <canvas id="capitalDonutChart"></canvas>
+                </div>
+                <div class="mt-4 text-white">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small fw-bold opacity-75">Activo (Calle)</span>
+                        <span class="small fw-black">${{ "{:,.0f}".format(stats.capital_activo) }}</span>
+                    </div>
+                    <div class="progress mb-3" style="height: 6px; border-radius: 10px; background: rgba(255,255,255,0.1);">
+                        <div class="progress-bar bg-primary" style="width: {{ (stats.capital_activo / (stats.capital_activo + stats.capital_recuperado) * 100) if (stats.capital_activo + stats.capital_recuperado) > 0 else 0 }}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small fw-bold opacity-75">Recuperado</span>
+                        <span class="small fw-black">${{ "{:,.0f}".format(stats.capital_recuperado) }}</span>
+                    </div>
+                    <div class="progress" style="height: 6px; border-radius: 10px; background: rgba(255,255,255,0.1);">
+                        <div class="progress-bar bg-success" style="width: {{ (stats.capital_recuperado / (stats.capital_activo + stats.capital_recuperado) * 100) if (stats.capital_activo + stats.capital_recuperado) > 0 else 0 }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Strategy Insight -->
+    <div class="metric-card border-0 shadow-sm overflow-hidden p-0">
+        <div class="row g-0">
+            <div class="col-md-1 bg-primary d-flex align-items-center justify-content-center text-white py-4">
+                <i class="fa-solid fa-lightbulb fs-2"></i>
+            </div>
+            <div class="col-md-11 p-4">
+                <h6 class="fw-black mb-1">Análisis Estratégico de Cartera</h6>
+                <p class="text-muted small m-0">
+                    {% set total_cartera = stats.capital_recuperado + stats.capital_activo %}
+                    {% set ratio = stats.capital_recuperado / total_cartera if total_cartera > 0 else 0 %}
+                    Actualmente has recuperado el <strong>{{ "{:,.1f}".format(ratio * 100) }}%</strong> del capital invertido. 
+                    {% if ratio > 0.5 %}
+                        Tu ciclo de capital está en etapa de maduración, generando utilidades netas significativas.
+                    {% else %}
+                        Tu cartera está en fase de crecimiento; enfócate en la reinversión para escalar los intereses.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Configuración Global de Chart.js
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+    Chart.defaults.color = "#64748b";
+
+    // Utility Breakdown Chart
+    const utilityCtx = document.getElementById('utilityDonutChart').getContext('2d');
+    new Chart(utilityCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Intereses', 'Mora'],
+            datasets: [{
+                data: [{{ stats.interes_cobrado }}, {{ stats.mora_cobrada }}],
+                backgroundColor: ['#4361ee', '#ef476f'],
+                hoverOffset: 15,
+                borderWidth: 0,
+                borderRadius: 10
+            }]
+        },
+        options: {
+            cutout: '75%',
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 12, weight: 'bold' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    cornerRadius: 10
+                }
+            }
+        }
+    });
+
+    // Capital Structure Chart
+    const capitalCtx = document.getElementById('capitalDonutChart').getContext('2d');
+    new Chart(capitalCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Capital en Calle', 'Capital Recuperado'],
+            datasets: [{
+                data: [{{ stats.capital_activo }}, {{ stats.capital_recuperado }}],
+                backgroundColor: ['#4cc9f0', '#06d6a0'],
+                borderWidth: 0,
+                borderRadius: 20
+            }]
+        },
+        options: {
+            cutout: '85%',
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    display: true, 
+                    position: 'bottom',
+                    labels: {
+                        color: '#ffffff',
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 11, weight: 'bold' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 10,
+                    cornerRadius: 10
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

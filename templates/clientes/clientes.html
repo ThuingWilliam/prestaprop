@@ -1,0 +1,165 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Clientes | PrestaPro{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <div class="mb-5">
+        <div class="d-flex justify-content-between align-items-end">
+            <div>
+                <h2 class="fw-black m-0" style="letter-spacing: -0.04em;">Directorio de Clientes</h2>
+                <p class="text-muted fw-medium">Administración de perfiles y expedientes.</p>
+            </div>
+            <button class="btn btn-primary rounded-pill px-5 py-3 fw-black shadow-lg" data-bs-toggle="modal" data-bs-target="#nuevoClienteModal">
+                <i class="fa-solid fa-user-plus me-2"></i>Nuevo Cliente
+            </button>
+        </div>
+    </div>
+
+    <div class="glass-card p-0 border-0 overflow-hidden shadow-lg">
+        <div class="p-4 px-5 bg-dark text-white d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="m-0 fw-black text-uppercase tracking-widest" style="font-size: 0.75rem;">Listado General de Clientes</h6>
+            </div>
+            <div class="small fw-bold text-white-50">Total: {{ clientes|length }} Registros</div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr class="text-muted fw-black" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;">
+                        <th class="ps-5 py-4">Cliente</th>
+                        <th class="py-4">Identificación</th>
+                        <th class="py-4">Solvencia Declarada</th>
+                        {% if session.get('rol') == 'ADMINISTRADOR' %}
+                        <th class="py-4">Oficial</th>
+                        {% endif %}
+                        <th class="py-4 text-center">Calificación</th>
+                        <th class="pe-5 py-4 text-end">Análisis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in clientes %}
+                    <tr class="animate-fade-in" style="animation-delay: {{ loop.index0 * 0.05 }}s">
+                        <td class="ps-5 py-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="user-avatar shadow-sm" style="width: 42px; height: 42px; font-size: 1rem;">
+                                    {{ c.primer_nombre[0] }}{{ c.apellido[0] }}
+                                </div>
+                                <div>
+                                    <div class="fw-black text-dark" style="font-size: 0.95rem;">{{ c.nombre_completo }}</div>
+                                    <div class="text-muted small fw-bold">{{ c.correo or 'Sin correo corporativo' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4">
+                            <div class="d-flex flex-column">
+                                <span class="fw-bold text-dark">{{ c.numero_id }}</span>
+                                <span class="text-muted small fw-bold"><i class="fa-solid fa-phone me-1" style="font-size: 0.65rem;"></i> {{ c.telefono or 'N/A' }}</span>
+                            </div>
+                        </td>
+                        <td class="py-4">
+                            <div class="fw-black text-success" style="font-size: 1rem;">${{ "{:,.2f}".format(c.ingreso_mensual or 0) }}</div>
+                            <div class="small text-muted fw-bold" style="font-size: 0.65rem;">Ingresos Mensuales Est.</div>
+                        </td>
+                        {% if session.get('rol') == 'ADMINISTRADOR' %}
+                        <td class="py-4">
+                            <div class="badge bg-dark bg-opacity-10 text-dark rounded-pill px-3 py-2 fw-bold" style="font-size: 0.65rem;">
+                                <i class="fa-solid fa-user-tie me-1"></i> {{ c.creado_por_usuario.nombre if c.creado_por_usuario else 'Sistema/Desconocido' }}
+                            </div>
+                        </td>
+                        {% endif %}
+                        <td class="py-4 text-center">
+                            <span class="badge {% if c.estado.value == 'ACTIVO' %}bg-success-subtle text-success border-success{% else %}bg-secondary-subtle text-secondary border-secondary{% endif %} rounded-pill px-3 py-2 fw-black" style="font-size: 0.65rem; border: 1px solid currentColor;">
+                                {{ c.estado.value }}
+                            </span>
+                        </td>
+                        <td class="pe-5 py-4 text-end">
+                            <div class="d-flex gap-2 justify-content-end">
+                                <a href="{{ url_for('clientes.ver_cliente', id=c.id) }}" class="btn btn-sm btn-white border shadow-sm rounded-xl px-3 fw-bold">
+                                    Perfil <i class="fa-solid fa-chevron-right ms-1" style="font-size: 0.6rem;"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="py-10 text-center text-muted">
+                            <div class="opacity-25 mb-3">
+                                <i class="fa-solid fa-users-slash" style="font-size: 4rem;"></i>
+                            </div>
+                            <h5 class="fw-black m-0">Sin Clientes Registrados</h5>
+                            <p class="small fw-medium m-0">Inicie la expansión de su cartera agregando un nuevo cliente.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Modal Nuevo Cliente "Elite" -->
+<div class="modal fade" id="nuevoClienteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass-modal p-0 border-0 shadow-2xl overflow-hidden">
+            <div class="modal-header bg-dark text-white p-4 px-5 border-0">
+                <div>
+                    <h5 class="modal-title fw-black m-0">Registrar Nuevo Cliente</h5>
+                    <p class="small text-white-50 m-0">Complete los datos básicos para el registro.</p>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 px-5">
+                <form action="{{ url_for('clientes.lista_clientes') }}" method="POST" id="formNuevoCliente">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">Nombres</label>
+                            <input type="text" name="primer_nombre" class="form-control form-control-lg bg-light border-0 fw-bold" placeholder="Eje: Juan Alberto" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">Apellidos</label>
+                            <input type="text" name="apellido" class="form-control form-control-lg bg-light border-0 fw-bold" placeholder="Eje: Pérez García" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">Cédula</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0 text-muted"><i class="fa-solid fa-id-card"></i></span>
+                                <input type="text" name="numero_id" class="form-control form-control-lg bg-light border-0 fw-bold" placeholder="000-0000000-0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">WhatsApp / Celular</label>
+ drum                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0 text-muted"><i class="fa-solid fa-phone"></i></span>
+                                <input type="text" name="telefono" class="form-control form-control-lg bg-light border-0 fw-bold" placeholder="809-000-0000">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">Correo Electrónico</label>
+                            <input type="email" name="correo" class="form-control form-control-lg bg-light border-0 fw-bold" placeholder="cliente@empresa.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">Sueldo / Ingresos (Opcional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0 text-success fw-bold">$</span>
+                                <input type="number" step="0.01" name="ingreso_mensual" class="form-control form-control-lg bg-light border-0 fw-black text-success" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-black text-uppercase text-muted">Dirección de Vivienda</label>
+                            <textarea name="direccion" class="form-control bg-light border-0 fw-bold" rows="3" placeholder="Calle, Número, Sector, Ciudad..."></textarea>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-3 mt-5 pb-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4 fw-bold flex-grow-1 py-3" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-5 fw-black flex-grow-1 shadow-lg py-3">Finalizar y Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

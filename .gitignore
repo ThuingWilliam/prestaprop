@@ -1,0 +1,33 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Variables de entorno (¡nunca subir!)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archivos de exportación DB sensibles
+neon_export.sql

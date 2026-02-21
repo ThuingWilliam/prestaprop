@@ -1,0 +1,95 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Agenda Maestros de Cobros | PrestaPro{% endblock %}
+
+{% block content %}
+<div class="mb-5 animate-fade-in">
+    <div class="d-flex justify-content-between align-items-end">
+        <div>
+            <h2 class="fw-black m-0" style="letter-spacing: -0.04em;">Hoja de Ruta Operativa</h2>
+            <p class="text-muted fw-medium">Cronograma inteligente para la gestión de recaudación activa.</p>
+        </div>
+        <div class="bg-white p-1 rounded-pill border shadow-sm d-flex gap-1">
+            <button class="btn btn-sm btn-primary rounded-pill px-4 fw-bold shadow-sm">Próximos</button>
+            <button class="btn btn-sm btn-light rounded-pill px-4 fw-bold">Vencidos</button>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card p-0 border-0 overflow-hidden shadow-lg animate-fade-in">
+    <div class="p-4 px-5 bg-dark text-white d-flex justify-content-between align-items-center">
+        <div>
+            <h6 class="m-0 fw-black text-uppercase tracking-widest" style="font-size: 0.75rem;">Planificador de Recaudación</h6>
+            <p class="small text-white-50 m-0">Consolidado dinámico de cuotas pendientes</p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-accent text-dark rounded-pill px-3 fw-black">{{ cobros|length }} Pendientes</span>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr class="text-muted fw-black" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;">
+                    <th class="ps-5 py-4">Prioridad / Fecha</th>
+                    <th class="py-4">Perfil del Cliente</th>
+                    <th class="py-4">Referencia de Crédito</th>
+                    <th class="py-4 text-end">Monto a Recaudar</th>
+                    <th class="py-4 text-center">Estado de Cobro</th>
+                    <th class="pe-5 py-4 text-end">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cobro in cobros %}
+                <tr class="animate-fade-in" style="animation-delay: {{ loop.index0 * 0.05 }}s">
+                    <td class="ps-5 py-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-{% if cobro.estado == 'VENCIDA' %}danger{% else %}primary{% endif %} bg-opacity-10 rounded-xl p-2 text-center" style="width: 50px; border: 1px solid rgba(0,0,0,0.05);">
+                                <div class="fw-black text-{% if cobro.estado == 'VENCIDA' %}danger{% else %}primary{% endif %}" style="font-size: 1.1rem; line-height: 1;">{{ cobro.fecha_vencimiento.day }}</div>
+                                <div class="small fw-bold text-muted text-uppercase" style="font-size: 0.55rem;">{{ cobro.fecha_vencimiento.strftime('%b') }}</div>
+                            </div>
+                            <div class="text-muted fw-bold small text-uppercase" style="font-size: 0.6rem; letter-spacing: 0.05em;">Año {{ cobro.fecha_vencimiento.year }}</div>
+                        </div>
+                    </td>
+                    <td class="py-4">
+                        <div class="fw-black text-dark" style="font-size: 0.95rem;">{{ cobro.prestamo.cliente.nombre_completo }}</div>
+                        <div class="text-muted small fw-bold"><i class="fa-solid fa-phone me-1" style="font-size: 0.6rem;"></i> {{ cobro.prestamo.cliente.telefono or 'S/N' }}</div>
+                    </td>
+                    <td class="py-4">
+                        <div class="fw-bold text-primary">#{{ cobro.prestamo.numero_prestamo }}</div>
+                        <div class="small text-muted fw-bold">Cuota {{ cobro.numero_cuota }} de {{ cobro.prestamo.total_periodos }}</div>
+                    </td>
+                    <td class="py-4 text-end">
+                        <div class="fw-black text-dark" style="font-size: 1.1rem;">${{ "{:,.2f}".format(cobro.total_cuota + cobro.monto_mora - cobro.total_pagado) }}</div>
+                        <div class="small text-muted fw-medium" style="font-size: 0.65rem;">Frecuencia: {{ cobro.prestamo.frecuencia.name }}</div>
+                    </td>
+                    <td class="py-4 text-center">
+                        <span class="px-3 py-2 rounded-pill text-[10px] fw-black text-uppercase tracking-wider
+                            {% if cobro.estado == 'VENCIDA' %}bg-danger-subtle text-danger border border-danger border-opacity-25
+                            {% elif cobro.estado == 'PARCIAL' %}bg-warning-subtle text-warning border border-warning border-opacity-25
+                            {% else %}bg-primary-subtle text-primary border border-primary border-opacity-25{% endif %}" style="font-size: 0.65rem;">
+                            {{ cobro.estado }}
+                        </span>
+                    </td>
+                    <td class="pe-5 py-4 text-end">
+                        <a href="{{ url_for('prestamos.ver', id=cobro.prestamo_id) }}" class="btn btn-primary btn-sm rounded-pill fw-black px-3 shadow-sm">
+                            Gestionar Pago <i class="fa-solid fa-receipt ms-1"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="py-10 text-center text-muted">
+                        <div class="opacity-25 mb-3">
+                            <i class="fa-solid fa-calendar-check" style="font-size: 4rem;"></i>
+                        </div>
+                        <h5 class="fw-black m-0">Agenda Limpia</h5>
+                        <p class="small fw-medium m-0">No se detectaron cobros pendientes en este ciclo.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

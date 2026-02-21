@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PrestaPro | Sistema Elite{% endblock %}</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar Elitista -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fa-solid fa-gem"></i>
+            <span>PrestaPro</span>
+        </div>
+        
+        <div class="nav-label">Análisis Financiero</div>
+        <nav>
+            <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>Panel de Control</span>
+            </a>
+            <a href="{{ url_for('main.reporte_maestro') }}" class="nav-link {% if request.endpoint == 'main.reporte_maestro' %}active{% endif %}">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+                <span>Reporte Maestro</span>
+            </a>
+            
+            <div class="nav-label">Analítica & Reportes</div>
+            <a href="{{ url_for('main.reporte_eficiencia') }}" class="nav-link {% if 'eficiencia' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Eficiencia de Cobro</span>
+            </a>
+            <a href="{{ url_for('main.reporte_aging') }}" class="nav-link {% if 'aging' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-hourglass-half"></i>
+                <span>Antigüedad (Aging)</span>
+            </a>
+            <a href="{{ url_for('main.reporte_rentabilidad') }}" class="nav-link {% if 'rentabilidad' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-sack-dollar"></i>
+                <span>Rentabilidad</span>
+            </a>
+            <a href="{{ url_for('main.vencidos') }}" class="nav-link {% if request.endpoint == 'main.vencidos' %}active{% endif %}">
+                <i class="fa-solid fa-calendar-xmark text-danger"></i>
+                <span>Cuotas Vencidas</span>
+            </a>
+            
+            <div class="nav-label">Operativa Diaria</div>
+            <a href="{{ url_for('clientes.lista_clientes') }}" class="nav-link {% if 'clientes' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-user-group"></i>
+                <span>Clientes</span>
+            </a>
+            <a href="{{ url_for('prestamos.agenda') }}" class="nav-link {% if 'agenda' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Agenda de Cobros</span>
+            </a>
+            <a href="{{ url_for('prestamos.nuevo') }}" class="nav-link {% if 'nuevo' in request.endpoint %}active{% endif %}" style="background: rgba(6, 214, 160, 0.1); color: #06d6a0; border: 1px dashed rgba(6, 214, 160, 0.3); margin-top: 10px;">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span class="fw-black">NUEVO CRÉDITO</span>
+            </a>
+            
+            {% if session.get('rol') == 'ADMINISTRADOR' %}
+            <div class="nav-label">Gobierno & Bóveda</div>
+            <a href="{{ url_for('prestamos.caja') }}" class="nav-link {% if 'caja' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-vault"></i>
+                <span>Caja & Tesorería</span>
+            </a>
+            <a href="{{ url_for('main.auditoria') }}" class="nav-link {% if request.endpoint == 'main.auditoria' %}active{% endif %}">
+                <i class="fa-solid fa-fingerprint"></i>
+                <span>Auditoría de Sistema</span>
+            </a>
+            <a href="{{ url_for('auth.listar_usuarios') }}" class="nav-link {% if request.endpoint == 'auth.listar_usuarios' %}active{% endif %}">
+                <i class="fa-solid fa-users-gear"></i>
+                <span>Personal & Accesos</span>
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-bar">
+            <div class="top-nav-actions">
+                <!-- Botones Solicitados: Home y Logout -->
+                <a href="{{ url_for('main.index') }}" class="btn-nav">
+                    <i class="fa-solid fa-home"></i>
+                    <span>Inicio</span>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="btn-nav btn-logout">
+                    <i class="fa-solid fa-power-off"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+            
+            <div class="user-profile">
+                <div class="user-avatar">
+                    {{ (session.get('usuario_nombre') or 'U')[0] | upper }}
+                </div>
+                <div class="text-end d-none d-md-block ms-2">
+                    <div class="fw-bold small">{{ session.get('usuario_nombre', 'Usuario') }}</div>
+                    <div class="text-muted" style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase;">{{ session.get('rol') }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show glass-card animate-fade-in" role="alert" style="border-left: 5px solid {% if category == 'success' %}var(--success){% else %}var(--danger){% endif %};">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="fa-solid {% if category == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %} fs-4"></i>
+                    <span>{{ message }}</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
+        
+        {% block modals %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        {% if session.get('usuario_id') %}
+        initInactivityTimer("{{ url_for('auth.logout') }}");
+        {% endif %}
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

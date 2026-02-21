@@ -1,0 +1,121 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Gestión de Usuarios | PrestaPro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .user-card {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        border: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+    .user-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    .avatar-placeholder {
+        width: 50px;
+        height: 50px;
+        background: #f8fafc;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        font-weight: 800;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-5 animate-fade-in">
+    <div>
+        <h1 class="fw-black m-0" style="font-size: 2.25rem; letter-spacing: -0.04em;">Personal & Accesos</h1>
+        <p class="text-muted fw-medium">Administración de credenciales y niveles de seguridad.</p>
+    </div>
+    {% if not modo %}
+    <a href="{{ url_for('auth.nuevo_usuario') }}" class="btn btn-dark rounded-pill px-4 py-2 fw-bold shadow-sm">
+        <i class="fa-solid fa-plus me-2"></i>Nuevo Usuario
+    </a>
+    {% else %}
+    <a href="{{ url_for('auth.listar_usuarios') }}" class="btn btn-light rounded-pill px-4 py-2 fw-bold">
+        <i class="fa-solid fa-arrow-left me-2"></i>Volver
+    </a>
+    {% endif %}
+</div>
+
+{% if not modo %}
+<!-- Lista de Usuarios -->
+<div class="row g-4 animate-fade-in">
+    {% for user in usuarios %}
+    <div class="col-md-6 col-lg-4">
+        <div class="user-card">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="avatar-placeholder">
+                    {{ user.nombre[:1].upper() }}
+                </div>
+                <div>
+                    <div class="fw-black text-dark">{{ user.nombre }}</div>
+                    <div class="text-muted small">@{{ user.username }}</div>
+                </div>
+                <div class="ms-auto">
+                    <span class="badge {% if user.rol.value == 'ADMINISTRADOR' %}bg-primary{% else %}bg-dark{% endif %} rounded-pill px-3" style="font-size: 0.65rem;">
+                        {{ user.rol.value }}
+                    </span>
+                </div>
+            </div>
+            <div class="text-muted small mb-4">
+                <i class="fa-solid fa-envelope me-2"></i>{{ user.email }}
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('auth.editar_usuario', id=user.id) }}" class="btn btn-light flex-grow-1 rounded-pill fw-bold small py-2">
+                    <i class="fa-solid fa-pen-to-square me-2"></i>Editar
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- Formulario Nuevo/Editar -->
+<div class="row justify-content-center animate-fade-in">
+    <div class="col-md-6">
+        <div class="user-card p-5">
+            <h4 class="fw-black mb-4">{{ 'Nuevo Usuario' if modo == 'nuevo' else 'Editar Usuario' }}</h4>
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Nombre Completo</label>
+                    <input type="text" name="nombre" class="form-control rounded-pill px-3" value="{{ usuario.nombre if usuario else '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Nombre de Usuario</label>
+                    <input type="text" name="username" class="form-control rounded-pill px-3" value="{{ usuario.username if usuario else '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Correo Electrónico</label>
+                    <input type="email" name="email" class="form-control rounded-pill px-3" value="{{ usuario.email if usuario else '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Contraseña {{ '(dejar en blanco para no cambiar)' if modo == 'editar' else '' }}</label>
+                    <input type="password" name="password" class="form-control rounded-pill px-3" {{ 'required' if modo == 'nuevo' else '' }}>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-muted">Rol de Acceso</label>
+                    <select name="rol" class="form-select rounded-pill px-3" required>
+                        <option value="ADMINISTRADOR" {{ 'selected' if usuario and usuario.rol.value == 'ADMINISTRADOR' else '' }}>Administrador</option>
+                        <option value="OFICIAL" {{ 'selected' if usuario and usuario.rol.value == 'OFICIAL' else '' }}>Oficial de Préstamos</option>
+                        <option value="COBRADOR" {{ 'selected' if usuario and usuario.rol.value == 'COBRADOR' else '' }}>Cobrador Autorizado</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-dark w-100 rounded-pill py-2 fw-bold shadow">
+                    {{ 'Guardar Usuario' if modo == 'nuevo' else 'Actualizar Cambios' }}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

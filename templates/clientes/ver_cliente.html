@@ -1,0 +1,253 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Perfil Cliente | {{ cliente.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="row g-4 animate-fade-in">
+    <!-- Perfil del Cliente Superior -->
+    <div class="col-12">
+        <div class="glass-card p-4 border-0" style="background: linear-gradient(135deg, white, #f8faff); overflow: hidden;">
+            <div class="d-flex flex-column flex-md-row gap-5 align-items-center">
+                <div class="position-relative">
+                    <div class="user-avatar shadow-lg" style="width: 120px; height: 120px; font-size: 2.5rem; border: 4px solid white;">
+                        {{ cliente.primer_nombre[0] }}{{ cliente.apellido[0] }}
+                    </div>
+                </div>
+                <div class="flex-grow-1 text-center text-md-start">
+                    <div class="d-flex flex-column flex-md-row align-items-center gap-3 mb-2">
+                        <h2 class="fw-black m-0" style="font-size: 2rem;">{{ cliente.nombre_completo }}</h2>
+                        <span class="status-badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+                            {{ prestamos|length }} Préstamos registrados
+                        </span>
+                    </div>
+                    <p class="text-muted fw-bold mb-4">
+                        <i class="fa-solid fa-address-card me-2"></i>Cédula: {{ cliente.numero_id }}
+                        {% if prestamos|length > 0 %}
+                        <span class="ms-3 text-success"><i class="fa-solid fa-circle-check me-1"></i>Expediente Activo</span>
+                        {% else %}
+                        <span class="ms-3 text-warning"><i class="fa-solid fa-circle-info me-1"></i>Sin créditos vigentes</span>
+                        {% endif %}
+                    </p>
+                    
+                    <div class="row g-4 pt-3 border-top">
+                        <div class="col-6 col-md-3">
+                            <div class="small text-muted fw-bold text-uppercase">Liquidación Promedio</div>
+                            <div class="h5 fw-black text-primary">$3,400.00</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="small text-muted fw-bold text-uppercase">Antigüedad</div>
+                            <div class="h5 fw-black text-dark">2.4 Años</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="small text-muted fw-bold text-uppercase">Ingresos Mensuales</div>
+                            <div class="h5 fw-black text-success">${{ "{:,.2f}".format(cliente.ingreso_mensual or 0) }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="small text-muted fw-bold text-uppercase">WhatsApp / Celular</div>
+                            <div class="h5 fw-black text-dark">{{ cliente.telefono or 'N/A' }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                    <a href="{{ url_for('prestamos.nuevo', cliente_id=cliente.id) }}" class="btn btn-primary px-4 py-3 rounded-pill fw-black shadow-lg">
+                        <i class="fa-solid fa-plus-circle me-2"></i>Nuevo Préstamo
+                    </a>
+                    <button class="btn btn-light px-4 py-3 rounded-pill fw-bold border" data-bs-toggle="modal" data-bs-target="#editarClienteModal">
+                        <i class="fa-solid fa-pen-to-square me-2"></i>Editar Perfil
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Préstamos "Fino" -->
+    <div class="col-12">
+        <div class="glass-card p-0 border-0 overflow-hidden">
+            <div class="p-4 px-5 bg-dark text-white d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="fw-black m-0">Historial de Préstamos</h5>
+                    <p class="small text-white-50 m-0">Consolidado de operaciones financieras históricas</p>
+                </div>
+                <div class="bg-white bg-opacity-10 p-2 rounded-lg px-3">
+                    <span class="small fw-bold">{{ prestamos|length }} Operaciones</span>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="text-muted fw-black" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em;">
+                            <th class="ps-5 py-4">Ref. Operación</th>
+                            <th class="py-4">Configuración</th>
+                            <th class="py-4 text-center">Progreso Pagos</th>
+                            <th class="py-4 text-end">Saldos Netos</th>
+                            <th class="py-4 text-center">Calificación</th>
+                            <th class="pe-5 py-4 text-end">Análisis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prestamo in prestamos %}
+                        <tr class="animate-fade-in" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                            <td class="ps-5 py-4">
+                                <div class="fw-black text-dark" style="font-size: 1.1rem;">#{{ prestamo.numero_prestamo }}</div>
+                                <div class="text-muted small fw-bold">Apertura: {{ prestamo.creado_en.strftime('%d/%m/%Y') }}</div>
+                            </td>
+                            <td class="py-4">
+                                <div class="fw-bold text-dark">${{ "{:,.2f}".format(prestamo.monto_capital) }}</div>
+                                <div class="small text-primary fw-bold text-uppercase" style="font-size: 0.65rem;">{{ prestamo.frecuencia.name }} | {{ prestamo.total_periodos }} Cuotas</div>
+                            </td>
+                            <td class="py-4" style="width: 200px;">
+                                {% set pct = ((1 - (prestamo.saldo_capital / prestamo.monto_capital)) * 100) | round(0) %}
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 6px; border-radius: 10px; background: #eaedf2;">
+                                        <div class="progress-bar {% if prestamo.estado == 'EN_MORA' %}bg-danger{% else %}bg-primary{% endif %} shadow-sm" style="width: {{ pct }}%"></div>
+                                    </div>
+                                    <span class="small fw-black text-dark" style="font-size: 0.75rem;">{{ pct }}%</span>
+                                </div>
+                            </td>
+                            <td class="py-4 text-end">
+                                <div class="fw-black text-dark">${{ "{:,.2f}".format(prestamo.saldo_capital + prestamo.saldo_interes) }}</div>
+                                <div class="small text-muted fw-medium" style="font-size: 0.65rem;">Vencimiento Próximo: {{ prestamo.fecha_desembolso.strftime('%d/%m') }}</div>
+                            </td>
+                            <td class="py-4 text-center">
+                                <span class="badge {% if prestamo.estado == 'ACTIVO' %}bg-emerald-500 bg-opacity-10 text-success{% elif prestamo.estado == 'EN_MORA' %}bg-rose-500 bg-opacity-10 text-danger{% else %}bg-slate-500 bg-opacity-10 text-secondary{% endif %} rounded-pill px-3 py-2 fw-black" style="font-size: 0.65rem; border: 1px solid currentColor;">
+                                    {{ prestamo.estado }}
+                                </span>
+                            </td>
+                            <td class="pe-5 py-4 text-end">
+                                <div class="d-flex justify-content-end gap-2">
+                                    {% if prestamo.estado == 'ACTIVO' or prestamo.estado == 'EN_MORA' %}
+                                    <button class="btn btn-sm btn-success rounded-xl px-3 fw-bold" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#registrarPagoModal" 
+                                            onclick="setPrestamoId('{{ prestamo.id }}', '{{ prestamo.monto_cuota }}', '{{ (prestamo.saldo_mora + prestamo.saldo_interes + prestamo.monto_cuota)|round(2) }}')">
+                                        <i class="fa-solid fa-money-bill-transfer me-1"></i>Cobrar
+                                    </button>
+                                    {% endif %}
+                                    <a href="{{ url_for('prestamos.ver', id=prestamo.id) }}" class="btn btn-sm btn-white border shadow-sm rounded-xl px-3 fw-bold">
+                                        Explorar <i class="fa-solid fa-chevron-right ms-1" style="font-size: 0.6rem;"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="py-10 text-center">
+                                <div class="opacity-25 mb-4">
+                                    <i class="fa-solid fa-file-invoice-dollar" style="font-size: 4rem;"></i>
+                                </div>
+                                <h5 class="fw-black text-dark">Sin Hoja de Expediente</h5>
+                                <p class="text-muted fw-medium mb-4">Este cliente aún no posee una hoja de crédito activa en la bóveda.</p>
+                                <a href="{{ url_for('prestamos.nuevo', cliente_id=cliente.id) }}" class="btn btn-primary rounded-pill px-5 py-3 fw-black shadow-lg">
+                                    <i class="fa-solid fa-plus-circle me-2"></i>Abrir Primer Crédito
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Modal Registrar Pago "Elite" -->
+<div class="modal fade" id="registrarPagoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-modal p-0 border-0 shadow-2xl overflow-hidden">
+            <div class="modal-header bg-dark text-white p-4 px-5 border-0">
+                <div>
+                    <h5 class="modal-title fw-black m-0">Cobrar Cuota</h5>
+                    <p class="small text-white-50 m-0">Confirmación de ingreso a bóveda.</p>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 px-5">
+                <form action="{{ url_for('prestamos.registrar_pago') }}" method="POST">
+                    <input type="hidden" name="prestamo_id" id="modal_prestamo_id">
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Capital a Recibir ($)</label>
+                        <input type="number" step="0.01" name="monto" id="modal_monto" class="form-control form-control-lg bg-light border-0 fw-black text-primary" required>
+                        <div class="form-text small fw-bold text-danger">Saldo vencido aproximado: $<span id="modal_saldo_vencido">0.00</span></div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Instrumento de Pago</label>
+                        <select name="metodo_pago" class="form-select form-select-lg bg-light border-0 fw-bold">
+                            <option value="EFECTIVO">Efectivo (Cash)</option>
+                            <option value="TRANSFERENCIA" selected>Transferencia Bancaria</option>
+                            <option value="CHEQUE">Cheque Certificado</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Referencia Bancaria</label>
+                        <input type="text" name="referencia" class="form-control form-control-lg bg-light border-0 fw-bold" placeholder="ID de transacción">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-black shadow-lg mb-3">Confirmar y Aplicar Pago</button>
+                    <button type="button" class="btn btn-light w-100 py-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar Operación</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Cliente "Elite" -->
+<div class="modal fade" id="editarClienteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-modal p-0 border-0 shadow-2xl overflow-hidden">
+            <div class="modal-header bg-dark text-white p-4 px-5 border-0">
+                <div>
+                    <h5 class="modal-title fw-black m-0">Editar Perfil</h5>
+                    <p class="small text-white-50 m-0">Modificar información del cliente</p>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 px-5">
+                <form action="{{ url_for('clientes.editar_cliente', id=cliente.id) }}" method="POST">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">Nombres</label>
+                            <input type="text" name="primer_nombre" class="form-control form-control-lg bg-light border-0 fw-bold" value="{{ cliente.primer_nombre }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">Apellidos</label>
+                            <input type="text" name="apellido" class="form-control form-control-lg bg-light border-0 fw-bold" value="{{ cliente.apellido }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">WhatsApp / Celular</label>
+                            <input type="text" name="telefono" class="form-control form-control-lg bg-light border-0 fw-bold" value="{{ cliente.telefono or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">Correo Electrónico</label>
+                            <input type="email" name="correo" class="form-control form-control-lg bg-light border-0 fw-bold" value="{{ cliente.correo or '' }}">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small fw-black text-uppercase text-muted">Dirección Residencial</label>
+                            <textarea name="direccion" class="form-control bg-light border-0 fw-bold" rows="2">{{ cliente.direccion or '' }}</textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small fw-black text-uppercase text-muted">Sueldo / Ingresos (Opcional)</label>
+                            <input type="number" step="0.01" name="ingreso_mensual" class="form-control form-control-lg bg-light border-0 fw-black text-success" value="{{ cliente.ingreso_mensual }}">
+                        </div>
+                    </div>
+                    <div class="mt-5 d-flex gap-3">
+                        <button type="submit" class="btn btn-primary flex-grow-1 py-3 rounded-pill fw-black shadow-lg">Guardar Cambios</button>
+                        <button type="button" class="btn btn-light px-4 py-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setPrestamoId(id, monto, saldoVencido) {
+    document.getElementById('modal_prestamo_id').value = id;
+    document.getElementById('modal_monto').value = monto;
+    document.getElementById('modal_saldo_vencido').innerText = saldoVencido;
+}
+</script>
+{% endblock %}

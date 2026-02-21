@@ -1,0 +1,153 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Reporte Maestro | PrestaPro{% endblock %}
+
+{% block content %}
+<div class="mb-5 animate-fade-in">
+    <h2 class="fw-black m-0" style="letter-spacing: -0.04em;">Reporte General</h2>
+    <p class="text-muted fw-medium">Historial de préstamos y cobros realizados.</p>
+</div>
+
+<!-- Resumen Rápido -->
+</div>
+
+<div class="glass-card p-0 border-0 overflow-hidden shadow-lg mb-5 animate-fade-in" style="animation-delay: 0.1s">
+    <div class="p-4 px-5 bg-dark text-white">
+        <h6 class="m-0 fw-black text-uppercase tracking-widest" style="font-size: 0.75rem;">Listado de Clientes</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr class="text-muted fw-black" style="font-size: 0.65rem; text-transform: uppercase;">
+                    <th class="ps-5 py-4">Cliente</th>
+                    <th class="py-4">Identificación</th>
+                    <th class="py-4 text-center">Actividad</th>
+                    <th class="py-4">Estado</th>
+                    <th class="pe-5 py-4 text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in clientes %}
+                <tr>
+                    <td class="ps-5 py-4">
+                        <div class="fw-black text-dark">{{ c.nombre_completo }}</div>
+                        <div class="text-muted small fw-bold">Registrado: {{ c.creado_en.strftime('%d/%m/%Y') }}</div>
+                    </td>
+                    <td class="py-4 fw-bold text-muted">{{ c.numero_id }}</td>
+                    <td class="py-4 text-center">
+                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 fw-bold">{{ c.prestamos|length }} Créditos</span>
+                    </td>
+                    <td class="py-4">
+                        <span class="badge {% if c.estado.value == 'ACTIVO' %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %} rounded-pill px-3 py-2 fw-black" style="font-size: 0.6rem;">
+                            {{ c.estado.value }}
+                        </span>
+                    </td>
+                    <td class="pe-5 py-4 text-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ url_for('prestamos.nuevo', cliente_id=c.id) }}" class="btn btn-sm btn-primary rounded-xl px-3 fw-bold">Crear Crédito</a>
+                            <a href="{{ url_for('clientes.ver_cliente', id=c.id) }}" class="btn btn-sm btn-white border shadow-sm rounded-xl px-3 fw-bold">Perfil</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Resumen Rápido Maestría -->
+<div class="row g-4 mb-5 animate-fade-in">
+    <div class="col-md-6">
+        <div class="glass-card bg-primary text-white border-0 p-4">
+            <h6 class="fw-bold text-white-50 text-uppercase tracking-wider">Préstamos realizados (Visible)</h6>
+            <div class="h3 fw-black m-0" id="total_colocaciones_sum">{{ prestamos|length }} Créditos</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="glass-card bg-success text-white border-0 p-4">
+            <h6 class="fw-bold text-white-50 text-uppercase tracking-wider">Cobros realizados (Visible)</h6>
+            <div class="h3 fw-black m-0" id="total_recaudaciones_sum">{{ pagos|length }} Transacciones</div>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card p-0 border-0 overflow-hidden shadow-lg animate-fade-in">
+    <div class="p-4 px-5 bg-dark text-white">
+        <h6 class="m-0 fw-black text-uppercase tracking-widest" style="font-size: 0.75rem;">Historial de Préstamos</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr class="text-muted fw-black" style="font-size: 0.65rem; text-transform: uppercase;">
+                    <th class="ps-5 py-4">Ref</th>
+                    <th class="py-4">Cliente / Socio</th>
+                    <th class="py-4">Monto Base</th>
+                    <th class="py-4">Tasa</th>
+                    <th class="py-4">Estado</th>
+                    <th class="pe-5 py-4 text-end">Análisis</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in prestamos %}
+                <tr>
+                    <td class="ps-5 py-4 fw-black">#{{ p.numero_prestamo }}</td>
+                    <td class="py-4">
+                        <div class="fw-bold text-dark">{{ p.cliente.nombre_completo }}</div>
+                        <div class="text-muted small fw-bold">{{ p.creado_en.strftime('%d/%m/%Y') }}</div>
+                    </td>
+                    <td class="py-4 fw-black text-primary">${{ "{:,.2f}".format(p.monto_capital) }}</td>
+                    <td class="py-4 fw-bold">{{ (p.tasa_interes_anual * 100)|int }}%</td>
+                    <td class="py-4">
+                        <span class="badge {% if p.estado == 'ACTIVO' %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} rounded-pill px-3 py-2 fw-black" style="font-size: 0.6rem;">
+                            {{ p.estado }}
+                        </span>
+                    </td>
+                    <td class="pe-5 py-4 text-end">
+                        <a href="{{ url_for('prestamos.ver', id=p.id) }}" class="btn btn-sm btn-white border shadow-sm rounded-xl px-3 fw-bold">Ver Detalles</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="glass-card p-0 border-0 overflow-hidden shadow-lg mt-5 animate-fade-in" style="animation-delay: 0.2s">
+    <div class="p-4 px-5 bg-dark text-white">
+        <h6 class="m-0 fw-black text-uppercase tracking-widest" style="font-size: 0.75rem;">Historial de Cobros</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr class="text-muted fw-black" style="font-size: 0.65rem; text-transform: uppercase;">
+                    <th class="ps-5 py-4">Fecha</th>
+                    <th class="py-4">Cliente / Socio</th>
+                    <th class="py-4">Monto Recaudado</th>
+                    <th class="py-4">Método</th>
+                    <th class="pe-5 py-4 text-end">Referencia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pago in pagos %}
+                <tr>
+                    <td class="ps-5 py-4">
+                        <div class="fw-black text-dark">{{ pago.fecha_pago.strftime('%d %b, %Y') }}</div>
+                        <div class="text-muted small fw-bold">{{ pago.fecha_pago.strftime('%H:%M:%S') }}</div>
+                    </td>
+                    <td class="py-4 text-dark fw-bold">{{ pago.prestamo.cliente.nombre_completo }}</td>
+                    <td class="py-4 fw-black text-success">${{ "{:,.2f}".format(pago.monto_recibido) }}</td>
+                    <td class="py-4 fw-bold text-muted text-uppercase" style="font-size: 0.7rem;">{{ pago.metodo_pago }}</td>
+                    <td class="pe-5 py-4 text-end text-muted small fw-bold">{{ pago.referencia_externa or 'Efectivo' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Cálculos dinámicos si fuera necesario
+</script>
+{% endblock %}

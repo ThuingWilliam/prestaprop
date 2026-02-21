@@ -1,0 +1,106 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Auditoría de Sistema | PrestaPro{% endblock %}
+
+{% block content %}
+<div class="mb-5 animate-fade-in">
+    <h2 class="fw-black m-0" style="letter-spacing: -0.04em;">Auditoría de Sistema</h2>
+    <p class="text-muted fw-medium">Bitácora maestra de integridad y trazabilidad de operaciones.</p>
+</div>
+
+<div class="glass-card p-0 border-0 overflow-hidden shadow-lg animate-fade-in">
+    <div class="p-4 px-5 bg-dark text-white d-flex justify-content-between align-items-center">
+        <div>
+            <h6 class="m-0 fw-black text-uppercase tracking-widest" style="font-size: 0.75rem;">Registro de Eventos Críticos</h6>
+            <p class="small text-white-50 m-0">Últimas 100 interacciones registradas por el motor de auditoría</p>
+        </div>
+        <div class="bg-white bg-opacity-10 p-2 rounded-lg px-3">
+            <i class="fa-solid fa-shield-check me-2 text-accent"></i>
+            <span class="small fw-bold">Sistema Protegido</span>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr class="text-muted fw-black" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;">
+                    <th class="ps-5 py-4">Sello de Tiempo</th>
+                    <th class="py-4">Colaborador</th>
+                    <th class="py-4">Módulo / Tabla</th>
+                    <th class="py-4 text-center">Operación</th>
+                    <th class="py-4">Detalle de Impacto</th>
+                    <th class="pe-5 py-4 text-end">Análisis JSON</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr class="animate-fade-in">
+                    <td class="ps-5 py-4">
+                        <div class="fw-black text-dark" style="font-size: 0.9rem;">{{ log.cambiado_en.strftime('%d %b, %Y') }}</div>
+                        <div class="text-muted small fw-bold">{{ log.cambiado_en.strftime('%H:%M:%S') }}</div>
+                    </td>
+                    <td class="py-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-avatar" style="width: 24px; height: 24px; font-size: 0.6rem;">
+                                {{ (log.cambiado_por_usuario.nombre_completo or 'S')[0] | upper if log.cambiado_por_usuario else 'S' }}
+                            </div>
+                            <span class="fw-bold">{{ log.cambiado_por_usuario.nombre_completo if log.cambiado_por_usuario else 'SISTEMA' }}</span>
+                        </div>
+                    </td>
+                    <td class="py-4">
+                        <span class="badge bg-light text-dark border fw-bold text-uppercase" style="font-size: 0.6rem;">{{ log.tabla }}</span>
+                    </td>
+                    <td class="py-4 text-center">
+                        <span class="badge 
+                            {% if log.accion == 'INSERT' %}bg-success-subtle text-success
+                            {% elif log.accion == 'UPDATE' %}bg-warning-subtle text-warning
+                            {% else %}bg-danger-subtle text-danger{% endif %} rounded-pill px-3 py-2 fw-black" style="font-size: 0.6rem; border: 1px solid currentColor;">
+                            {{ log.accion }}
+                        </span>
+                    </td>
+                    <td class="py-4">
+                        <div class="text-muted fw-bold small" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ log.valores_despues or 'N/A' }}
+                        </div>
+                    </td>
+                    <td class="pe-5 py-4 text-end">
+                        <button class="btn btn-sm btn-white border shadow-sm rounded-xl px-3 fw-bold" onclick='verDetalle({{ log.id }})'>
+                            Inspeccionar <i class="fa-solid fa-code ms-1" style="font-size: 0.6rem;"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="py-10 text-center text-muted">
+                        <div class="opacity-25 mb-3">
+                            <i class="fa-solid fa-receipt" style="font-size: 4rem;"></i>
+                        </div>
+                        <h5 class="fw-black m-0">Registro Vacío</h5>
+                        <p class="small fw-medium m-0">No hay eventos grabados en la bitácora aún.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Detalle Auditoría (Placeholder para futura expansión) -->
+<div class="modal fade" id="detalleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content glass-card p-4">
+            <h5 class="fw-black mb-4">Análisis Forense de Acción</h5>
+            <div id="jsonViewer" class="bg-dark p-4 rounded-4 text-white overflow-auto" style="max-height: 400px; font-family: monospace;">
+                <!-- JSON content will go here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function verDetalle(id) {
+        // En una implementación real, esto abriría el JSON estructurado
+        alert("Función de inspección profunda de JSON para el registro ID: " + id);
+    }
+</script>
+{% endblock %}
