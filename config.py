@@ -12,5 +12,5 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     DEBUG = os.environ.get('FLASK_DEBUG', 'true').lower() == 'true'
-    PORT = int(os.environ.get('PORT', 5000))
+    PORT = int(os.environ.get('PORT', 5010))
     PERMANENT_SESSION_LIFETIME = 180  # 3 minutos
