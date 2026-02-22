@@ -31,7 +31,7 @@ def nuevo():
             monto = Decimal(request.form.get('monto') or 0)
             tasa = Decimal(request.form.get('tasa') or 0) / 100
             tipo_tasa = request.form.get('tipo_tasa') # PERIODICA o ANUAL
-            metodo = request.form.get('metodo_calculo') # FIJO o FRANCES
+            metodo = 'FRANCES' # Forzado siempre a Sistema Francés de Amortización según reglas de negocio
             frecuencia_str = request.form.get('frecuencia')
             plazo = int(request.form.get('plazo') or 12)
             
