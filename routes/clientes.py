@@ -13,6 +13,13 @@ def lista_clientes():
     try:
         if request.method == 'POST':
             # Registrar entrada para auditoría despues
+            
+            # Generar cédula temporal si no se proporciona
+            numero_id = request.form.get('numero_id')
+            if not numero_id or numero_id.strip() == '':
+                import uuid
+                numero_id = f"TEMP-{str(uuid.uuid4())[:8].upper()}"
+            
             ingreso_str = request.form.get('ingreso_mensual') or '0'
             try:
                 ingreso_val = Decimal(ingreso_str)
@@ -22,7 +29,7 @@ def lista_clientes():
             nuevo_cliente = Cliente(
                 primer_nombre=request.form.get('primer_nombre'),
                 apellido=request.form.get('apellido'),
-                numero_id=request.form.get('numero_id'),
+                numero_id=numero_id,
                 telefono=request.form.get('telefono'),
                 correo=request.form.get('correo'),
                 ingreso_mensual=ingreso_val,

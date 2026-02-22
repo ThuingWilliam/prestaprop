@@ -23,7 +23,16 @@ def siguiente_fecha_vencimiento(actual: date, frecuencia: FrecuenciaPago) -> dat
     return actual + relativedelta(months=1)
 
 def calcular_tasa_periodo(tasa: Decimal, frecuencia: FrecuenciaPago, es_anual: bool = True) -> Decimal:
-    """Calcula la tasa del periodo. Si es_anual es True, divide por los periodos del año."""
+    """
+    Calcula la tasa del periodo. Si es_anual es True, divide por los periodos del año.
+    De lo contrario, la trata como tasa del periodo directo. 
+    En cualquier caso, la tasa pasada a la función YA DEBE SER UN DECIMAL (E.j. 0.20 para 20%).
+    """
+    # Fix crucial: Si el usuario introduce 20 (queriendo decir 20%), necesitamos garantizar que se trate como 0.20.
+    # Si la tasa es > 1 (eje: 20), asumimos que el usuario puso porcentaje entero en UI y no decimal.
+    if tasa > Decimal("1"):
+        tasa = tasa / Decimal("100")
+        
     if not es_anual:
         return tasa
     return tasa / PERIODOS_POR_ANO[frecuencia]
