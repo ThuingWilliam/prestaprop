@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Boolean, DateTime, Enum
+from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from database import Base
+from .empresa import Empresa
 from .enums import RolUsuario
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -19,8 +20,10 @@ class Usuario(Base):
     rol            = Column(Enum(RolUsuario), nullable=False, default=RolUsuario.OFICIAL)
     activo         = Column(Boolean, default=True)
     creado_en      = Column(DateTime, default=datetime.utcnow)
+    empresa_id     = Column(UUID(as_uuid=True), ForeignKey("empresas.id"), nullable=True)
 
     # Relaciones
+    empresa = relationship("Empresa", backref="usuarios")
     prestamos_aprobados = relationship("Prestamo", back_populates="aprobado_por_usuario", foreign_keys="[Prestamo.aprobado_por]")
     pagos_registrados = relationship("Pago", back_populates="registrado_por_usuario")
 

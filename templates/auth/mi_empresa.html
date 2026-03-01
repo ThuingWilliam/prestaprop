@@ -1,0 +1,45 @@
+{% extends 'layout/base.html' %}
+{% block title %}Mi Empresa - PrestaPro{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <h2 class="h4 mb-0 fw-bold">Configuración de Mi Empresa</h2>
+        <p class="text-muted mb-0">Gestiona los detalles y el capital inicial de tu empresa</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-lg-8 mx-auto">
+        <div class="glass-card p-4">
+            <form method="POST" action="{{ url_for('auth.mi_empresa') }}">
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-bold">NOMBRE DE LA EMPRESA</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="fa-solid fa-building text-primary"></i></span>
+                        <input type="text" name="nombre" class="form-control border-0 bg-light" value="{{ empresa.nombre if empresa else '' }}" required placeholder="Ingresa el nombre de tu empresa">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-bold">CAPITAL INICIAL / ACTUAL OPERATIVO</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="fa-solid fa-sack-dollar text-success"></i></span>
+                        <input type="number" step="0.01" min="0" name="capital_inicial" class="form-control border-0 bg-light fw-bold text-success fs-5" value="{{ empresa.capital_inicial if empresa else '0.00' }}" required placeholder="Ej. 100000">
+                    </div>
+                    <div class="form-text">
+                        Este monto es el balance base utilizado para aprobar y desembolsar préstamos, y se actualizará automáticamente con los pagos recabados.
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{{ url_for('main.index') }}" class="btn btn-light rounded-pill px-4">Cancelar</a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                        <i class="fa-solid fa-save me-2"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from database import Base
 from .enums import EstadoCliente
+from .empresa import Empresa
 
 class Cliente(Base):
     __tablename__ = "clientes"
@@ -20,9 +21,11 @@ class Cliente(Base):
     ingreso_mensual = Column(Numeric(14, 2))
     estado          = Column(Enum(EstadoCliente), default=EstadoCliente.ACTIVO)
     creado_por_usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True)
+    empresa_id      = Column(UUID(as_uuid=True), ForeignKey("empresas.id"), nullable=True)
     creado_en       = Column(DateTime, default=datetime.utcnow)
 
     # Relaciones
+    empresa = relationship("Empresa", backref="clientes")
     creado_por_usuario = relationship("Usuario")
     prestamos   = relationship("Prestamo", back_populates="cliente")
     referencias = relationship("ReferenciaCliente", back_populates="cliente", cascade="all, delete-orphan")

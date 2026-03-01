@@ -74,8 +74,19 @@
 
 <!-- KPIs Simplificados -->
 <div class="kpi-grid">
-    {% if session.get('rol') == 'ADMINISTRADOR' %}
-    <!-- Admin View -->
+    {% if session.get('rol') in ['ADMINISTRADOR', 'GERENTE_EMPRESA'] %}
+    <!-- Admin & Gerente View -->
+    {% if session.get('rol') == 'GERENTE_EMPRESA' %}
+    <div class="nextgen-card border border-success border-2 shadow-lg">
+        <div class="card-icon-box bg-success text-white">
+            <i class="fa-solid fa-building-columns fs-5"></i>
+        </div>
+        <div class="stat-label text-success">Capital Disponible</div>
+        <div class="stat-value text-success">${{ "{:,.2f}".format(empresa_capital|default(0)) }}</div>
+        <div class="mt-3 text-muted small fw-medium">Fondo base en bóveda / caja</div>
+    </div>
+    {% endif %}
+
     <div class="nextgen-card">
         <div class="card-icon-box bg-mesh-blue text-white shadow-lg">
             <i class="fa-solid fa-vault fs-5"></i>
@@ -284,8 +295,8 @@
 </div>
 {% endif %}
 
-<!-- Nueva Sección: Análisis de recurrencia (Solo Admin) -->
-{% if session.get('rol') == 'ADMINISTRADOR' %}
+<!-- Nueva Sección: Análisis de recurrencia (Solo Admin/Gerente) -->
+{% if session.get('rol') in ['ADMINISTRADOR', 'GERENTE_EMPRESA'] %}
 <div class="row g-4 mb-5">
     <div class="col-12">
         <div class="nextgen-card border-0 shadow-sm" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
@@ -325,7 +336,7 @@
 </div>
 {% endif %}
 
-{% if session.get('rol') == 'ADMINISTRADOR' %}
+{% if session.get('rol') in ['ADMINISTRADOR', 'GERENTE_EMPRESA'] %}
 <div class="row g-4 mt-2">
     <div class="col-lg-7">
         <div class="chart-box shadow-sm py-4">

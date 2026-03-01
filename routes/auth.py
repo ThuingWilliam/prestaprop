@@ -2,7 +2,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models.enums import RolUsuario
 from database import SessionLocal, registrar_auditoria
-from models import Usuario
+from models import Usuario, Empresa
+from decimal import Decimal
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -20,6 +21,15 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if session.get('rol') != RolUsuario.ADMINISTRADOR.value:
             flash('Acceso denegado: Se requieren permisos de Administrador', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_or_gerente_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('rol') not in [RolUsuario.ADMINISTRADOR.value, RolUsuario.GERENTE_EMPRESA.value]:
+            flash('Acceso denegado: Se requieren permisos de Administrador o Gerente', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
     return decorated_function
@@ -48,27 +58,47 @@ def logout():
 # Gestión de Usuarios (Admin)
 @auth_bp.route('/usuarios')
 @login_required
-@admin_required
+@admin_or_gerente_required
 def listar_usuarios():
     db = SessionLocal()
     try:
-        usuarios = db.query(Usuario).order_by(Usuario.nombre.asc()).all()
+        user_rol = session.get('rol')
+        user_id = session.get('usuario_id')
+        query = db.query(Usuario)
+        
+        if user_rol == RolUsuario.GERENTE_EMPRESA.value:
+            usuario_actual = query.filter(Usuario.id == user_id).first()
+            query = query.filter(Usuario.rol != RolUsuario.ADMINISTRADOR)
+            if usuario_actual and usuario_actual.empresa_id:
+                query = query.filter(Usuario.empresa_id == usuario_actual.empresa_id)
+            else:
+                query = query.filter(Usuario.id == user_id)
+                
+        usuarios = query.order_by(Usuario.nombre.asc()).all()
         return render_template('usuarios/usuarios.html', usuarios=usuarios)
     finally:
         db.close()
 
 @auth_bp.route('/usuarios/nuevo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@admin_or_gerente_required
 def nuevo_usuario():
     if request.method == 'POST':
         db = SessionLocal()
         try:
+            usuario_actual = db.query(Usuario).get(session.get('usuario_id'))
+            if session.get('rol') == RolUsuario.ADMINISTRADOR.value:
+                emp_id = request.form.get('empresa_id')
+                empresa_id_asignada = emp_id if emp_id else None
+            else:
+                empresa_id_asignada = usuario_actual.empresa_id
+            
             nuevo = Usuario(
                 nombre=request.form.get('nombre'),
                 email=request.form.get('email'),
                 username=request.form.get('username'),
-                rol=RolUsuario(request.form.get('rol'))
+                rol=RolUsuario(request.form.get('rol')),
+                empresa_id=empresa_id_asignada
             )
             nuevo.set_password(request.form.get('password'))
             db.add(nuevo)
@@ -87,11 +117,17 @@ def nuevo_usuario():
             flash(f'Error al crear usuario: {str(e)}', 'danger')
         finally:
             db.close()
-    return render_template('usuarios/usuarios.html', modo='nuevo')
+            
+    db = SessionLocal()
+    empresas = []
+    if session.get('rol') == RolUsuario.ADMINISTRADOR.value:
+        empresas = db.query(Empresa).all()
+    db.close()
+    return render_template('usuarios/usuarios.html', modo='nuevo', empresas=empresas)
 
 @auth_bp.route('/usuarios/editar/<uuid:id>', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@admin_or_gerente_required
 def editar_usuario(id):
     db = SessionLocal()
     try:
@@ -105,6 +141,10 @@ def editar_usuario(id):
             usuario.email = request.form.get('email')
             usuario.username = request.form.get('username')
             usuario.rol = RolUsuario(request.form.get('rol'))
+            
+            if session.get('rol') == RolUsuario.ADMINISTRADOR.value:
+                emp_id = request.form.get('empresa_id')
+                usuario.empresa_id = emp_id if emp_id else None
             
             password = request.form.get('password')
             if password:
@@ -120,6 +160,42 @@ def editar_usuario(id):
             flash('Usuario actualizado correctamente', 'success')
             return redirect(url_for('auth.listar_usuarios'))
             
-        return render_template('usuarios/usuarios.html', usuario=usuario, modo='editar')
+        empresas = []
+        if session.get('rol') == RolUsuario.ADMINISTRADOR.value:
+            empresas = db.query(Empresa).all()
+            
+        return render_template('usuarios/usuarios.html', usuario=usuario, modo='editar', empresas=empresas)
+    finally:
+        db.close()
+
+@auth_bp.route('/mi-empresa', methods=['GET', 'POST'])
+@login_required
+@admin_or_gerente_required
+def mi_empresa():
+    db = SessionLocal()
+    try:
+        usuario = db.query(Usuario).get(session.get('usuario_id'))
+        
+        if request.method == 'POST':
+            nombre = request.form.get('nombre')
+            try:
+                capital = Decimal(request.form.get('capital_inicial') or '0')
+            except:
+                capital = Decimal('0')
+            
+            if usuario.empresa:
+                usuario.empresa.nombre = nombre
+                usuario.empresa.capital_inicial = capital
+            else:
+                nueva_empresa = Empresa(nombre=nombre, capital_inicial=capital)
+                db.add(nueva_empresa)
+                db.flush()
+                usuario.empresa_id = nueva_empresa.id
+                
+            db.commit()
+            flash('Datos de la empresa actualizados correctamente', 'success')
+            return redirect(url_for('auth.mi_empresa'))
+            
+        return render_template('auth/mi_empresa.html', empresa=usuario.empresa)
     finally:
         db.close()

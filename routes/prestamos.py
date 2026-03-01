@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from models import Prestamo, Cliente, ProductoPrestamo, CuotaProgramada, Pago, MetodoPago, Usuario, FrecuenciaPago
 from services.prestamo_service import generar_tabla_amortizacion, aplicar_pago_logica
 from database import SessionLocal, registrar_auditoria
-from .auth import login_required, admin_required
+from .auth import login_required, admin_required, admin_or_gerente_required
 from decimal import Decimal
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -19,8 +19,13 @@ def nuevo():
         user_rol = str(session.get('rol', ''))
         
         q_clientes = db.query(Cliente)
+        usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
+
         if user_rol != "ADMINISTRADOR":
             q_clientes = q_clientes.filter(Cliente.creado_por_usuario_id == user_id)
+            if usuario_actual and usuario_actual.empresa_id:
+                # Si el oficial pertenece a una empresa, limitamos también a clientes de esa empresa
+                q_clientes = q_clientes.filter(Cliente.empresa_id == usuario_actual.empresa_id)
             
         clientes = q_clientes.all()
         productos = db.query(ProductoPrestamo).filter(ProductoPrestamo.activo == True).all()
@@ -45,6 +50,14 @@ def nuevo():
             else:
                 tabla_datos = generar_tabla_amortizacion(monto, tasa, frecuencia, plazo, fecha_inicio, es_anual=es_anual)
             total_interes = sum(c["interes_cuota"] for c in tabla_datos)
+            
+            # Validar capital de la empresa
+            if usuario_actual and usuario_actual.empresa:
+                if monto > usuario_actual.empresa.capital_inicial:
+                    flash(f'Error: El préstamo (${monto}) supera el capital disponible en la empresa (${usuario_actual.empresa.capital_inicial}).', 'error')
+                    return redirect(url_for('prestamos.nuevo'))
+                # Restar fondo
+                usuario_actual.empresa.capital_inicial -= monto
             
             num_prestamo = f"PRE-{datetime.utcnow().year}-{db.query(Prestamo).count() + 1:04d}"
             
@@ -101,8 +114,14 @@ def ver(id):
         user_rol = str(session.get('rol', ''))
         
         query = db.query(Prestamo).filter(Prestamo.id == id)
+        
+        usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
         if user_rol != "ADMINISTRADOR":
-            query = query.filter(Prestamo.creado_por_usuario_id == user_id)
+            if user_rol == "GERENTE_EMPRESA":
+                if usuario_actual and usuario_actual.empresa_id:
+                    query = query.filter(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
+            else:
+                query = query.filter(Prestamo.creado_por_usuario_id == user_id)
             
         prestamo = query.first()
         if not prestamo:
@@ -137,6 +156,12 @@ def registrar_pago():
             referencia=referencia
         )
         
+        # Sumar el pago al capital de la empresa asociada al prestamo o al usuario
+        # Lo sumamos completo (capital + interés) ya que es ingreso real de fondos
+        usuario_actual = db.query(Usuario).filter(Usuario.id == session.get('usuario_id')).first()
+        if usuario_actual and usuario_actual.empresa:
+            usuario_actual.empresa.capital_inicial += monto
+
         db.commit()
         
         # Auditoría
@@ -186,7 +211,12 @@ def agenda():
         )
         
         if user_rol != "ADMINISTRADOR":
-            query = query.filter(Prestamo.creado_por_usuario_id == user_id)
+            if user_rol == "GERENTE_EMPRESA":
+                usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
+                if usuario_actual and usuario_actual.empresa_id:
+                    query = query.filter(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
+            else:
+                query = query.filter(Prestamo.creado_por_usuario_id == user_id)
             
         proximos = query.order_by(CuotaProgramada.fecha_vencimiento.asc()).all()
         return render_template('prestamos/agenda.html', cobros=proximos)
@@ -195,7 +225,7 @@ def agenda():
 
 @prestamos_bp.route('/prestamo/ajustar-tasa', methods=['POST'])
 @login_required
-@admin_required
+@admin_or_gerente_required
 def ajustar_tasa():
     db = SessionLocal()
     try:

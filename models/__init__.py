@@ -1,5 +1,6 @@
 from database import Base
 from .enums import RolUsuario, EstadoPrestamo, FrecuenciaPago, EstadoCuota, MetodoPago, EstadoCliente
+from .empresa import Empresa
 from .usuario import Usuario
 from .cliente import Cliente, ReferenciaCliente
 from .producto import ProductoPrestamo

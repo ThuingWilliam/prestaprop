@@ -1,9 +1,10 @@
 import enum
 
 class RolUsuario(str, enum.Enum):
-    ADMINISTRADOR = "ADMINISTRADOR"
-    OFICIAL       = "OFICIAL"
-    COBRADOR      = "COBRADOR"
+    ADMINISTRADOR   = "ADMINISTRADOR"
+    GERENTE_EMPRESA = "GERENTE_EMPRESA"
+    OFICIAL         = "OFICIAL"
+    COBRADOR        = "COBRADOR"
 
 class EstadoPrestamo(str, enum.Enum):
     PENDIENTE   = "PENDIENTE"

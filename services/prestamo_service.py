@@ -173,6 +173,27 @@ def aplicar_pago_logica(db: Session, prestamo: Prestamo, monto_recibido: Decimal
         cuota.total_pagado = cuota.capital_pagado + cuota.interes_pagado + cuota.mora_pagada
         total_debido = cuota.total_cuota + cuota.monto_mora
 
+        # --- TRASPASO DE CAPITAL FALTANTE ---
+        # Si el usuario pagó al menos todo el interés y la mora, pero faltó capital
+        if cuota.interes_pagado >= cuota.interes_cuota and cuota.mora_pagada >= cuota.monto_mora:
+            capital_faltante = cuota.capital_cuota - cuota.capital_pagado
+            if capital_faltante > 0 and restante <= 0:
+                # Buscar la próxima cuota para sumarle el resto
+                proxima_cuota = db.query(CuotaProgramada).filter(
+                    CuotaProgramada.prestamo_id == prestamo.id,
+                    CuotaProgramada.numero_cuota == cuota.numero_cuota + 1
+                ).first()
+                
+                if proxima_cuota:
+                    proxima_cuota.capital_cuota += capital_faltante
+                    proxima_cuota.total_cuota += capital_faltante
+                    
+                    # Ajustar la cuota actual para que se marque como PAGADA
+                    cuota.capital_cuota = cuota.capital_pagado
+                    cuota.total_cuota = cuota.capital_cuota + cuota.interes_cuota
+                    total_debido = cuota.total_cuota + cuota.monto_mora
+        # ------------------------------------
+
         if cuota.total_pagado >= total_debido:
             cuota.estado = EstadoCuota.PAGADA
             cuota.fecha_pago = fecha_pago

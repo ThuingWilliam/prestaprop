@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, session
 from sqlalchemy import func
 from database import SessionLocal
 from models import Prestamo, Cliente, BitacoraAuditoria
-from .auth import login_required, admin_required
+from .auth import login_required, admin_required, admin_or_gerente_required
 from models.enums import RolUsuario
 from sqlalchemy import func, Date
 from dateutil.relativedelta import relativedelta
@@ -24,13 +24,24 @@ def index():
         filtro_prestamo = []
         filtro_cliente = []
         if user_rol != "ADMINISTRADOR":
-            filtro_prestamo.append(Prestamo.creado_por_usuario_id == user_id)
-            filtro_cliente.append(Cliente.creado_por_usuario_id == user_id)
+            if user_rol == "GERENTE_EMPRESA":
+                from models import Usuario
+                usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
+                if usuario_actual and usuario_actual.empresa_id:
+                    filtro_prestamo.append(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
+                    filtro_cliente.append(Cliente.empresa_id == usuario_actual.empresa_id)
+            else:
+                filtro_prestamo.append(Prestamo.creado_por_usuario_id == user_id)
+                filtro_cliente.append(Cliente.creado_por_usuario_id == user_id)
 
         # Métricas Globales (Filtradas si no es Admin)
         total_prestamos = db.query(func.count(Prestamo.id)).filter(*filtro_prestamo).scalar() or 0
         capital_activo = db.query(func.sum(Prestamo.saldo_capital)).filter(*filtro_prestamo).scalar() or 0
         monto_total_prestado = db.query(func.sum(Prestamo.monto_capital)).filter(*filtro_prestamo).scalar() or 0
+        
+        empresa_capital = 0
+        if user_rol == "GERENTE_EMPRESA" and 'usuario_actual' in locals() and usuario_actual and usuario_actual.empresa:
+            empresa_capital = usuario_actual.empresa.capital_inicial
         
         prestamos_mora_query = db.query(Prestamo).filter(Prestamo.estado == 'EN_MORA', *filtro_prestamo)
         prestamos_mora = prestamos_mora_query.all()
@@ -78,22 +89,9 @@ def index():
         
         # Nuevas Métricas Detalladas (Oficial)
         oficial_stats = None
-        if user_rol != "ADMINISTRADOR":
+        if user_rol not in ["ADMINISTRADOR", "GERENTE_EMPRESA"]:
             from services.prestamo_service import get_user_dashboard_stats
             oficial_stats = get_user_dashboard_stats(db, user_id, hoy)
-
-        if user_rol == "ADMINISTRADOR":
-            # 1. Rendimiento Mensual (Últimos 6 meses)
-            from sqlalchemy import extract
-            for i in range(5, -1, -1):
-                m_date = hoy.replace(day=1) - relativedelta(months=i)
-                label = m_date.strftime('%b')
-                total_mes = db.query(func.sum(Prestamo.monto_capital)).filter(
-                    extract('month', Prestamo.creado_en) == m_date.month,
-                    extract('year', Prestamo.creado_en) == m_date.year
-                ).scalar() or 0
-                mensual_labels.append(label)
-                mensual_data.append(float(total_mes))
 
         # 2. Salud de Cartera (Donut) - Para todos, pero filtrado
         estados_data = db.query(Prestamo.estado, func.count(Prestamo.id)).filter(*filtro_prestamo).group_by(Prestamo.estado).all()
@@ -101,21 +99,29 @@ def index():
         salud_labels = ["Vigente", "En Mora", "Completado"]
         salud_valores = [dict_estados.get('ACTIVO', 0), dict_estados.get('EN_MORA', 0), dict_estados.get('COMPLETADO', 0)]
 
-        if user_rol == "ADMINISTRADOR":
+        if user_rol in ["ADMINISTRADOR", "GERENTE_EMPRESA"]:
             # 1. Rendimiento Mensual (Últimos 6 meses)
             from sqlalchemy import extract
             for i in range(5, -1, -1):
                 m_date = hoy.replace(day=1) - relativedelta(months=i)
                 label = m_date.strftime('%b')
-                total_mes = db.query(func.sum(Prestamo.monto_capital)).filter(
+                
+                query_mes = db.query(func.sum(Prestamo.monto_capital)).filter(
                     extract('month', Prestamo.creado_en) == m_date.month,
                     extract('year', Prestamo.creado_en) == m_date.year
-                ).scalar() or 0
+                )
+                if filtro_prestamo:
+                    query_mes = query_mes.filter(*filtro_prestamo)
+                
+                total_mes = query_mes.scalar() or 0
                 mensual_labels.append(label)
                 mensual_data.append(float(total_mes))
 
             # 3. Clientes con múltiples préstamos
-            subq = db.query(Prestamo.cliente_id).group_by(Prestamo.cliente_id).having(func.count(Prestamo.id) > 1).subquery()
+            subq = db.query(Prestamo.cliente_id)
+            if filtro_prestamo: subq = subq.filter(*filtro_prestamo)
+            subq = subq.group_by(Prestamo.cliente_id).having(func.count(Prestamo.id) > 1).subquery()
+            
             clientes_multi = db.query(func.count(subq.c.cliente_id)).scalar() or 0
             monto_multi = db.query(func.sum(Prestamo.monto_capital)).filter(Prestamo.cliente_id.in_(subq)).scalar() or 0
         else:
@@ -129,7 +135,12 @@ def index():
         ultimos_prestamos = db.query(Prestamo).filter(*filtro_prestamo).order_by(Prestamo.creado_en.desc()).limit(5).all()
         bitacora_query = db.query(BitacoraAuditoria)
         if user_rol != "ADMINISTRADOR":
-            bitacora_query = bitacora_query.filter(BitacoraAuditoria.cambiado_por == user_id)
+            if user_rol == "GERENTE_EMPRESA":
+                # Idealmente filtrar la bitacora por usuarios de su empresa, pero por simplicidad se le muestra lo suyo o omitimos restriccion.
+                # Lo restringimos a sus acciones directas por ahora, o sin limite si no se pide.
+                bitacora_query = bitacora_query.filter(BitacoraAuditoria.cambiado_por == user_id)
+            else:
+                bitacora_query = bitacora_query.filter(BitacoraAuditoria.cambiado_por == user_id)
         bitacora = bitacora_query.order_by(BitacoraAuditoria.cambiado_en.desc()).limit(5).all()
         
         return render_template('dashboard/index.html', 
@@ -153,6 +164,7 @@ def index():
                              bitacora=bitacora,
                              mis_cobros_hoy=mis_cobros_hoy,
                              mis_clientes_mes=mis_clientes_mes,
+                             empresa_capital=empresa_capital,
                              hoy=hoy)
     finally:
         db.close()
@@ -183,9 +195,18 @@ def reporte_maestro():
         q_clientes = db.query(Cliente)
         
         if user_rol != "ADMINISTRADOR":
-            q_prestamos = q_prestamos.filter(Prestamo.creado_por_usuario_id == user_id)
-            q_pagos = q_pagos.filter(Prestamo.creado_por_usuario_id == user_id)
-            q_clientes = q_clientes.filter(Cliente.creado_por_usuario_id == user_id)
+            if user_rol == "GERENTE_EMPRESA":
+                from models import Usuario
+                usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
+                if usuario_actual and usuario_actual.empresa_id:
+                    q_prestamos = q_prestamos.filter(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
+                    # q_pagos depends on prestamo, we join it above
+                    q_pagos = q_pagos.filter(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
+                    q_clientes = q_clientes.filter(Cliente.empresa_id == usuario_actual.empresa_id)
+            else:
+                q_prestamos = q_prestamos.filter(Prestamo.creado_por_usuario_id == user_id)
+                q_pagos = q_pagos.filter(Prestamo.creado_por_usuario_id == user_id)
+                q_clientes = q_clientes.filter(Cliente.creado_por_usuario_id == user_id)
 
         prestamos = q_prestamos.order_by(Prestamo.creado_en.desc()).all()
         pagos = q_pagos.order_by(Pago.fecha_pago.desc()).limit(100).all()
@@ -257,7 +278,7 @@ def reporte_aging():
 
 @main_bp.route('/reporte/rentabilidad')
 @login_required
-@admin_required # Este suele ser solo para admin, pero permitamos a oficiales ver su propia rentabilidad si el plan lo decía
+@admin_or_gerente_required
 def reporte_rentabilidad():
     db = SessionLocal()
     try:

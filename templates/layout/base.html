@@ -57,16 +57,21 @@
                     <i class="fa-solid fa-plus-circle me-2"></i> NUEVO CRÉDITO
                 </a>
                 
+                {% if session.get('rol') in ['ADMINISTRADOR', 'GERENTE_EMPRESA'] %}
+                <div class="nav-label text-muted small fw-bold mt-4 mb-2 text-uppercase">Gobierno & Empresa</div>
                 {% if session.get('rol') == 'ADMINISTRADOR' %}
-                <div class="nav-label text-muted small fw-bold mt-4 mb-2 text-uppercase">Gobierno & Bóveda</div>
                 <a href="{{ url_for('prestamos.caja') }}" class="nav-link text-white py-2 mb-1 rounded {% if 'caja' in request.endpoint %}bg-primary{% endif %}">
                     <i class="fa-solid fa-vault me-2"></i> Caja & Tesorería
                 </a>
                 <a href="{{ url_for('main.auditoria') }}" class="nav-link text-white py-2 mb-1 rounded {% if request.endpoint == 'main.auditoria' %}bg-primary{% endif %}">
                     <i class="fa-solid fa-fingerprint me-2"></i> Auditoría
                 </a>
-                <a href="{{ url_for('auth.listar_usuarios') }}" class="nav-link text-white py-2 mb-1 rounded {% if request.endpoint == 'auth.listar_usuarios' %}bg-primary{% endif %}">
+                {% endif %}
+                <a href="{{ url_for('auth.listar_usuarios') }}" class="nav-link text-white py-2 mb-1 rounded {% if 'usuarios' in request.endpoint %}bg-primary{% endif %}">
                     <i class="fa-solid fa-users-gear me-2"></i> Personal
+                </a>
+                <a href="{{ url_for('auth.mi_empresa') }}" class="nav-link text-white py-2 mb-1 rounded {% if request.endpoint == 'auth.mi_empresa' %}bg-primary{% endif %}">
+                    <i class="fa-solid fa-building flex-shrink-0 me-2"></i> Mi Empresa
                 </a>
                 {% endif %}
             </nav>
@@ -123,8 +128,9 @@
                 <span class="fw-black">NUEVO CRÉDITO</span>
             </a>
             
+            {% if session.get('rol') in ['ADMINISTRADOR', 'GERENTE_EMPRESA'] %}
+            <div class="nav-label">Gobierno & Empresa</div>
             {% if session.get('rol') == 'ADMINISTRADOR' %}
-            <div class="nav-label">Gobierno & Bóveda</div>
             <a href="{{ url_for('prestamos.caja') }}" class="nav-link {% if 'caja' in request.endpoint %}active{% endif %}">
                 <i class="fa-solid fa-vault"></i>
                 <span>Caja & Tesorería</span>
@@ -133,9 +139,14 @@
                 <i class="fa-solid fa-fingerprint"></i>
                 <span>Auditoría de Sistema</span>
             </a>
-            <a href="{{ url_for('auth.listar_usuarios') }}" class="nav-link {% if request.endpoint == 'auth.listar_usuarios' %}active{% endif %}">
+            {% endif %}
+            <a href="{{ url_for('auth.listar_usuarios') }}" class="nav-link {% if 'usuarios' in request.endpoint %}active{% endif %}">
                 <i class="fa-solid fa-users-gear"></i>
                 <span>Personal & Accesos</span>
+            </a>
+            <a href="{{ url_for('auth.mi_empresa') }}" class="nav-link {% if request.endpoint == 'auth.mi_empresa' %}active{% endif %}">
+                <i class="fa-solid fa-building flex-shrink-0"></i>
+                <span>Mi Empresa</span>
             </a>
             {% endif %}
         </nav>

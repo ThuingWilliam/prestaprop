@@ -140,9 +140,12 @@
     <div class="glass-card p-0 border-0 overflow-hidden shadow-lg mb-5">
         <div class="p-4 px-5 bg-light border-bottom d-flex justify-content-between align-items-center">
             <h6 class="m-0 fw-black text-uppercase text-muted" style="font-size: 0.75rem; letter-spacing: 0.1em;">Plan de Pagos y Cuotas</h6>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill fw-bold" type="button" onclick="toggleCuotas()">
+                <i class="fa-solid fa-eye me-1"></i> <span id="btnToggleText">Ver Todo</span>
+            </button>
         </div>
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" id="tablaCuotas">
                 <thead class="bg-light">
                     <tr class="text-muted fw-black" style="font-size: 0.6rem; text-transform: uppercase;">
                         <th class="ps-5 py-4">#</th>
@@ -155,8 +158,16 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% set ns = namespace(found_next=false) %}
                     {% for c in prestamo.tabla_pagos %}
-                    <tr class="{% if c.estado.value == 'VENCIDA' %}bg-danger bg-opacity-5{% endif %}">
+                    {% set es_siguiente_o_vencida = false %}
+                    {% if c.estado.value in ['VENCIDA', 'PARCIAL', 'PENDIENTE'] and not ns.found_next %}
+                        {% set es_siguiente_o_vencida = true %}
+                        {% if c.estado.value == 'PENDIENTE' %}
+                            {% set ns.found_next = true %}
+                        {% endif %}
+                    {% endif %}
+                    <tr class="cuota-row {% if c.estado.value == 'VENCIDA' %}bg-danger bg-opacity-5{% endif %}" data-default-show="{{ 'true' if es_siguiente_o_vencida else 'false' }}">
                         <td class="ps-5 py-4"><span class="fw-black text-dark">{{ c.numero_cuota }}</span></td>
                         <td class="py-4 fw-bold">{{ c.fecha_vencimiento.strftime('%d/%m/%Y') }}</td>
                         <td class="py-4 text-end">
@@ -233,6 +244,25 @@
         </div>
     </div>
 </div>
+</div>
+<script>
+    let showAllCuotas = false;
+    function applyCuotasView() {
+        document.querySelectorAll('.cuota-row').forEach(row => {
+            if (!showAllCuotas && row.getAttribute('data-default-show') === 'false') {
+                row.style.display = 'none';
+            } else {
+                row.style.display = '';
+            }
+        });
+        document.getElementById('btnToggleText').innerText = showAllCuotas ? 'Ocultar' : 'Ver Todo';
+    }
+    function toggleCuotas() {
+        showAllCuotas = !showAllCuotas;
+        applyCuotasView();
+    }
+    document.addEventListener("DOMContentLoaded", applyCuotasView);
+</script>
 {% endblock %}
 
 {% block modals %}

@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from database import SessionLocal, registrar_auditoria
 from models import Cliente, Prestamo
 from .auth import login_required
+from models import Cliente, Prestamo, Usuario
 from decimal import Decimal
 
 clientes_bp = Blueprint('clientes', __name__)
@@ -26,6 +27,9 @@ def lista_clientes():
             except:
                 ingreso_val = Decimal('0')
 
+            usuario_actual = db.query(Usuario).filter(Usuario.id == session.get('usuario_id')).first()
+            empresa_id_actual = usuario_actual.empresa_id if usuario_actual else None
+            
             nuevo_cliente = Cliente(
                 primer_nombre=request.form.get('primer_nombre'),
                 apellido=request.form.get('apellido'),
@@ -34,7 +38,8 @@ def lista_clientes():
                 correo=request.form.get('correo'),
                 ingreso_mensual=ingreso_val,
                 direccion=request.form.get('direccion'),
-                creado_por_usuario_id=session.get('usuario_id')
+                creado_por_usuario_id=session.get('usuario_id'),
+                empresa_id=empresa_id_actual
             )
             db.add(nuevo_cliente)
             db.flush()
@@ -54,9 +59,13 @@ def lista_clientes():
         user_rol = str(session.get('rol', ''))
         
         query = db.query(Cliente)
+        usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
+        
         if user_rol != "ADMINISTRADOR":
             query = query.filter(Cliente.creado_por_usuario_id == user_id)
-            
+            if usuario_actual and usuario_actual.empresa_id:
+                query = query.filter(Cliente.empresa_id == usuario_actual.empresa_id)
+                
         lista = query.order_by(Cliente.creado_en.desc()).all()
         return render_template('clientes/clientes.html', clientes=lista)
     finally:
@@ -71,9 +80,12 @@ def ver_cliente(id):
         user_rol = str(session.get('rol', ''))
         
         query = db.query(Cliente).filter(Cliente.id == id)
+        usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
         if user_rol != "ADMINISTRADOR":
             query = query.filter(Cliente.creado_por_usuario_id == user_id)
-            
+            if usuario_actual and usuario_actual.empresa_id:
+                query = query.filter(Cliente.empresa_id == usuario_actual.empresa_id)
+                
         cliente = query.first()
         if not cliente:
             flash('Cliente no encontrado o sin permisos', 'error')
@@ -92,9 +104,12 @@ def editar_cliente(id):
         user_rol = str(session.get('rol', ''))
         
         query = db.query(Cliente).filter(Cliente.id == id)
+        usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
         if user_rol != "ADMINISTRADOR":
             query = query.filter(Cliente.creado_por_usuario_id == user_id)
-            
+            if usuario_actual and usuario_actual.empresa_id:
+                query = query.filter(Cliente.empresa_id == usuario_actual.empresa_id)
+                
         cliente = query.first()
         if not cliente:
             flash('Cliente no encontrado o sin permisos', 'error')

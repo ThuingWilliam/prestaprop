@@ -104,12 +104,39 @@
                 </div>
                 <div class="mb-4">
                     <label class="form-label small fw-bold text-muted">Rol de Acceso</label>
-                    <select name="rol" class="form-select rounded-pill px-3" required>
-                        <option value="ADMINISTRADOR" {{ 'selected' if usuario and usuario.rol.value == 'ADMINISTRADOR' else '' }}>Administrador</option>
+                    <select id="rolSelect" name="rol" class="form-select rounded-pill px-3" required onchange="if(typeof toggleEmpresa === 'function') toggleEmpresa(this.value)">
+                        <option value="ADMINISTRADOR" {{ 'selected' if usuario and usuario.rol.value == 'ADMINISTRADOR' else '' }}>Administrador Global</option>
+                        <option value="GERENTE_EMPRESA" {{ 'selected' if usuario and usuario.rol.value == 'GERENTE_EMPRESA' else '' }}>Gerente de Empresa</option>
                         <option value="OFICIAL" {{ 'selected' if usuario and usuario.rol.value == 'OFICIAL' else '' }}>Oficial de Préstamos</option>
                         <option value="COBRADOR" {{ 'selected' if usuario and usuario.rol.value == 'COBRADOR' else '' }}>Cobrador Autorizado</option>
                     </select>
                 </div>
+                
+                {% if session.get('rol') == 'ADMINISTRADOR' %}
+                <div class="mb-4" id="divEmpresa" style="display: none;">
+                    <label class="form-label small fw-bold text-muted">A qué Empresa pertenece</label>
+                    <select name="empresa_id" class="form-select rounded-pill px-3">
+                        <option value="">-- Nivel Global (Sin Empresa) --</option>
+                        {% for emp in empresas %}
+                        <option value="{{ emp.id }}" {{ 'selected' if usuario and usuario.empresa_id == emp.id else '' }}>{{ emp.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <script>
+                    function toggleEmpresa(rolValue) {
+                        const divEmpresa = document.getElementById('divEmpresa');
+                        if (rolValue !== 'ADMINISTRADOR') {
+                            divEmpresa.style.display = 'block';
+                        } else {
+                            divEmpresa.style.display = 'none';
+                        }
+                    }
+                    document.addEventListener("DOMContentLoaded", function() {
+                        toggleEmpresa(document.getElementById('rolSelect').value);
+                    });
+                </script>
+                {% endif %}
+                
                 <button type="submit" class="btn btn-dark w-100 rounded-pill py-2 fw-bold shadow">
                     {{ 'Guardar Usuario' if modo == 'nuevo' else 'Actualizar Cambios' }}
                 </button>
