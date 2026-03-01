@@ -435,13 +435,16 @@ def generar_recibo_pdf_bytes(pago: Pago) -> bytes:
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     
+    # Obtener nombre de empresa vinculada
+    empresa_nombre = pago.prestamo.cliente.empresa.nombre if pago.prestamo.cliente.empresa else "PRESTAPRO"
+
     # Colores y fuentes
     pdf.set_fill_color(30, 41, 59) # Dark Slate
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", "B", 16)
     
     # Encabezado
-    pdf.cell(0, 20, "COMPROBANTE DE PAGO - PRESTAPRO", ln=True, align="C", fill=True)
+    pdf.cell(0, 20, f"COMPROBANTE DE PAGO - {empresa_nombre.upper()}", ln=True, align="C", fill=True)
     pdf.ln(10)
     
     # Información General
@@ -519,7 +522,7 @@ def generar_recibo_pdf_bytes(pago: Pago) -> bytes:
     # Pie de página
     pdf.set_text_color(100, 116, 139)
     pdf.set_font("Arial", "I", 8)
-    pdf.cell(0, 5, "Este documento es un comprobante oficial de pago generado por PrestaPro.", ln=True, align="C")
+    pdf.cell(0, 5, f"Este documento es un comprobante oficial de pago generado por {empresa_nombre}.", ln=True, align="C")
     pdf.cell(0, 5, f"Metodo de Pago: {pago.metodo_pago.name} | Ref: {pago.numero_referencia or 'N/A'}", ln=True, align="C")
     pdf.cell(0, 5, "Gracias por su puntualidad.", ln=True, align="C")
     
@@ -538,11 +541,16 @@ def generar_resumen_pdf_bytes(prestamo: Prestamo) -> bytes:
     pdf.set_auto_page_break(auto=True, margin=15)
     
     # Header
+    empresa_nombre = prestamo.cliente.empresa.nombre if prestamo.cliente.empresa else "PRESTAPRO"
+    
     pdf.set_fill_color(30, 41, 59)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 20, f"REPORTE EJECUTIVO - PRESTAMO {prestamo.numero_prestamo}", ln=True, align="C", fill=True)
-    pdf.ln(10)
+    pdf.cell(0, 20, f"REPORTE EJECUTIVO - {empresa_nombre.upper()}", ln=True, align="C", fill=True)
+    
+    pdf.set_font("Arial", "I", 10)
+    pdf.cell(0, 5, f"Préstamo Num: {prestamo.numero_prestamo}", ln=True, align="C")
+    pdf.ln(5)
     
     # Cliente e Info General
     pdf.set_text_color(0, 0, 0)

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}PrestaPro | Sistema Elite{% endblock %}</title>
+    <title>{% block title %}{{ session.get('empresa_nombre', 'PrestaPro') }} | Sistema Elite{% endblock %}</title>
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -17,7 +17,7 @@
     <div class="offcanvas offcanvas-start bg-dark text-white d-lg-none" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
         <div class="offcanvas-header border-bottom border-secondary">
             <h5 class="offcanvas-title" id="mobileSidebarLabel">
-                <i class="fa-solid fa-gem text-info me-2"></i>PrestaPro
+                <i class="fa-solid fa-gem text-info me-2"></i>{{ session.get('empresa_nombre', 'PrestaPro') }}
             </h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
@@ -82,7 +82,7 @@
     <div class="sidebar d-none d-lg-block">
         <div class="sidebar-brand">
             <i class="fa-solid fa-gem"></i>
-            <span>PrestaPro</span>
+            <span>{{ session.get('empresa_nombre', 'PrestaPro') }}</span>
         </div>
         
         <div class="nav-label">Análisis Financiero</div>

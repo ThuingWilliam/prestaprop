@@ -45,6 +45,8 @@ def login():
             session['usuario_id'] = str(usuario.id)
             session['usuario_nombre'] = usuario.nombre
             session['rol'] = usuario.rol.value
+            if usuario.empresa:
+                session['empresa_nombre'] = usuario.empresa.nombre
             flash(f'Bienvenido {usuario.nombre}', 'success')
             return redirect(url_for('main.index'))
         flash('Credenciales inválidas', 'danger')
