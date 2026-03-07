@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models.enums import RolUsuario
 from database import SessionLocal, registrar_auditoria
-from models import Usuario, Empresa
+from models import Usuario, Empresa, InyeccionCapital
 from decimal import Decimal
 
 auth_bp = Blueprint('auth', __name__)
@@ -179,25 +179,57 @@ def mi_empresa():
         usuario = db.query(Usuario).get(session.get('usuario_id'))
         
         if request.method == 'POST':
-            nombre = request.form.get('nombre')
-            try:
-                capital = Decimal(request.form.get('capital_inicial') or '0')
-            except:
-                capital = Decimal('0')
+            accion = request.form.get('accion')
             
-            if usuario.empresa:
-                usuario.empresa.nombre = nombre
-                usuario.empresa.capital_inicial = capital
-            else:
-                nueva_empresa = Empresa(nombre=nombre, capital_inicial=capital)
-                db.add(nueva_empresa)
-                db.flush()
-                usuario.empresa_id = nueva_empresa.id
+            if accion == 'actualizar_nombre':
+                # Solo actualiza el nombre de la empresa
+                nombre = request.form.get('nombre')
+                if usuario.empresa:
+                    usuario.empresa.nombre = nombre
+                    # Si cambia el nombre, actualizamos la sesión
+                    session['empresa_nombre'] = nombre
+                else:
+                    nueva_empresa = Empresa(nombre=nombre, capital_inicial=Decimal('0'))
+                    db.add(nueva_empresa)
+                    db.flush()
+                    usuario.empresa_id = nueva_empresa.id
+                    session['empresa_nombre'] = nombre
+                db.commit()
+                flash('Nombre de la empresa actualizado.', 'success')
                 
-            db.commit()
-            flash('Datos de la empresa actualizados correctamente', 'success')
+            elif accion == 'inyectar_capital':
+                # Registra una nueva inyección de capital
+                try:
+                    monto = Decimal(request.form.get('monto') or '0')
+                except:
+                    monto = Decimal('0')
+                descripcion = request.form.get('descripcion', '')
+                
+                if monto <= 0:
+                    flash('El monto de inyección debe ser mayor a cero.', 'danger')
+                else:
+                    if not usuario.empresa:
+                        flash('Primero debes configurar el nombre de la empresa.', 'warning')
+                    else:
+                        inyeccion = InyeccionCapital(
+                            empresa_id=usuario.empresa.id,
+                            monto=monto,
+                            descripcion=descripcion,
+                            registrado_por_id=usuario.id
+                        )
+                        db.add(inyeccion)
+                        # Sumar al capital acumulado
+                        usuario.empresa.capital_inicial += monto
+                        db.commit()
+                        flash(f'Inyección de ${monto:,.2f} registrada exitosamente.', 'success')
+            
             return redirect(url_for('auth.mi_empresa'))
             
-        return render_template('auth/mi_empresa.html', empresa=usuario.empresa)
+        # Historial de inyecciones
+        inyecciones = db.query(InyeccionCapital).filter(
+            InyeccionCapital.empresa_id == usuario.empresa_id
+        ).order_by(InyeccionCapital.fecha.desc()).all() if usuario and usuario.empresa_id else []
+        
+        return render_template('auth/mi_empresa.html', empresa=usuario.empresa, inyecciones=inyecciones)
     finally:
         db.close()

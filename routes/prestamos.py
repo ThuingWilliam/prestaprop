@@ -18,14 +18,21 @@ def nuevo():
         user_id = session.get('usuario_id')
         user_rol = str(session.get('rol', ''))
         
+        # COBRADOR_AUTORIZADO no puede crear préstamos
+        if user_rol == "COBRADOR_AUTORIZADO":
+            flash('No tienes permisos para crear nuevos créditos.', 'danger')
+            return redirect(url_for('main.index'))
+
         q_clientes = db.query(Cliente)
         usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
 
-        if user_rol != "ADMINISTRADOR":
+        if user_rol == "ADMINISTRADOR":
+            pass  # ve todos los clientes
+        elif usuario_actual and usuario_actual.empresa_id:
+            # Empleados de empresa ven todos los clientes de su empresa
+            q_clientes = q_clientes.filter(Cliente.empresa_id == usuario_actual.empresa_id)
+        else:
             q_clientes = q_clientes.filter(Cliente.creado_por_usuario_id == user_id)
-            if usuario_actual and usuario_actual.empresa_id:
-                # Si el oficial pertenece a una empresa, limitamos también a clientes de esa empresa
-                q_clientes = q_clientes.filter(Cliente.empresa_id == usuario_actual.empresa_id)
             
         clientes = q_clientes.all()
         productos = db.query(ProductoPrestamo).filter(ProductoPrestamo.activo == True).all()
@@ -116,12 +123,13 @@ def ver(id):
         query = db.query(Prestamo).filter(Prestamo.id == id)
         
         usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
-        if user_rol != "ADMINISTRADOR":
-            if user_rol == "GERENTE_EMPRESA":
-                if usuario_actual and usuario_actual.empresa_id:
-                    query = query.filter(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
-            else:
-                query = query.filter(Prestamo.creado_por_usuario_id == user_id)
+        if user_rol == "ADMINISTRADOR":
+            pass  # ve todo
+        elif usuario_actual and usuario_actual.empresa_id:
+            # Gerente, Oficial y Cobrador con empresa: ven préstamos de su empresa
+            query = query.filter(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
+        else:
+            query = query.filter(Prestamo.creado_por_usuario_id == user_id)
             
         prestamo = query.first()
         if not prestamo:

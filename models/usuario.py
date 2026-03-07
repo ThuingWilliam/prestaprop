@@ -17,7 +17,7 @@ class Usuario(Base):
     username       = Column(String(50), unique=True, nullable=False)
     email          = Column(String(150), unique=True, nullable=False)
     contrasena_hash = Column(String(255), nullable=False)
-    rol            = Column(Enum(RolUsuario), nullable=False, default=RolUsuario.OFICIAL)
+    rol            = Column(Enum(RolUsuario), nullable=False, default=RolUsuario.OFICIAL_COBRO)
     activo         = Column(Boolean, default=True)
     creado_en      = Column(DateTime, default=datetime.utcnow)
     empresa_id     = Column(UUID(as_uuid=True), ForeignKey("empresas.id"), nullable=True)

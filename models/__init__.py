@@ -8,3 +8,4 @@ from .prestamo import Prestamo, CuotaProgramada
 from .pago import Pago, AplicacionPago
 from .mora import Mora
 from .auditoria import BitacoraAuditoria
+from .inyeccion_capital import InyeccionCapital

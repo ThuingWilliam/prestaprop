@@ -61,10 +61,14 @@ def lista_clientes():
         query = db.query(Cliente)
         usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
         
-        if user_rol != "ADMINISTRADOR":
+        if user_rol == "ADMINISTRADOR":
+            pass  # ve todo
+        elif usuario_actual and usuario_actual.empresa_id:
+            # GERENTE, OFICIAL_COBRO y COBRADOR_AUTORIZADO con empresa: ven todos los clientes de su empresa
+            query = query.filter(Cliente.empresa_id == usuario_actual.empresa_id)
+        else:
+            # Usuario sin empresa: solo ve sus propios clientes
             query = query.filter(Cliente.creado_por_usuario_id == user_id)
-            if usuario_actual and usuario_actual.empresa_id:
-                query = query.filter(Cliente.empresa_id == usuario_actual.empresa_id)
                 
         lista = query.order_by(Cliente.creado_en.desc()).all()
         return render_template('clientes/clientes.html', clientes=lista)
@@ -81,10 +85,15 @@ def ver_cliente(id):
         
         query = db.query(Cliente).filter(Cliente.id == id)
         usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
-        if user_rol != "ADMINISTRADOR":
+        
+        if user_rol == "ADMINISTRADOR":
+            pass  # ve todo
+        elif usuario_actual and usuario_actual.empresa_id:
+            # Empleado de empresa: puede ver cualquier cliente de su empresa
+            query = query.filter(Cliente.empresa_id == usuario_actual.empresa_id)
+        else:
+            # Sin empresa: solo sus propios clientes
             query = query.filter(Cliente.creado_por_usuario_id == user_id)
-            if usuario_actual and usuario_actual.empresa_id:
-                query = query.filter(Cliente.empresa_id == usuario_actual.empresa_id)
                 
         cliente = query.first()
         if not cliente:

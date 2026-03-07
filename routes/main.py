@@ -23,14 +23,16 @@ def index():
         # Filtro de seguridad (Isolation)
         filtro_prestamo = []
         filtro_cliente = []
+        usuario_actual = None
         if user_rol != "ADMINISTRADOR":
-            if user_rol == "GERENTE_EMPRESA":
-                from models import Usuario
-                usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
-                if usuario_actual and usuario_actual.empresa_id:
-                    filtro_prestamo.append(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
-                    filtro_cliente.append(Cliente.empresa_id == usuario_actual.empresa_id)
+            from models import Usuario
+            usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
+            if usuario_actual and usuario_actual.empresa_id:
+                # Gerente, Oficial y Cobrador de empresa: ven su empresa
+                filtro_prestamo.append(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
+                filtro_cliente.append(Cliente.empresa_id == usuario_actual.empresa_id)
             else:
+                # Sin empresa: solo sus propios registros
                 filtro_prestamo.append(Prestamo.creado_por_usuario_id == user_id)
                 filtro_cliente.append(Cliente.creado_por_usuario_id == user_id)
 
@@ -40,7 +42,7 @@ def index():
         monto_total_prestado = db.query(func.sum(Prestamo.monto_capital)).filter(*filtro_prestamo).scalar() or 0
         
         empresa_capital = 0
-        if user_rol == "GERENTE_EMPRESA" and 'usuario_actual' in locals() and usuario_actual and usuario_actual.empresa:
+        if usuario_actual and usuario_actual.empresa:
             empresa_capital = usuario_actual.empresa.capital_inicial
         
         prestamos_mora_query = db.query(Prestamo).filter(Prestamo.estado == 'EN_MORA', *filtro_prestamo)

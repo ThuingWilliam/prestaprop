@@ -232,6 +232,12 @@ body {
     animation: fadeIn 0.5s ease-out forwards;
 }
 
+
+/* ============================================
+   RESPONSIVIDAD MÓVIL — Media Queries
+   ============================================ */
+
+/* Tablet y móvil en landscape (< 992px) */
 @media (max-width: 992px) {
     .sidebar {
         transform: translateX(-100%);
@@ -241,28 +247,26 @@ body {
     .sidebar.active {
         transform: translateX(0);
         box-shadow: 10px 0 50px rgba(0, 0, 0, 0.5);
-        /* Sombra intensa para modo modal */
     }
 
     .main-content {
         margin-left: 0;
         padding: 16px;
-        /* Padding reducido en móviles */
     }
 
     .top-bar {
-        /* Cambio a row con flex-wrap para acomodar el botón hamburguesa y el perfil en una línea */
         flex-direction: row;
         align-items: center;
-        gap: 15px;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
     }
 
-    /* Ocupar toda la línea inferior si no cabe arriba */
     .top-nav-actions {
         width: 100%;
         order: 3;
         justify-content: space-between;
-        margin-top: 10px;
+        margin-top: 8px;
     }
 
     .btn-nav {
@@ -276,29 +280,95 @@ body {
 
     .glass-card {
         padding: 20px;
-        /* Reducir padding de las tarjetas en móviles */
+    }
+
+    /* KPI Grid: 2 columnas en tablet */
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
     }
 }
 
-/* Fix para pantallas muy pequeñas (smartphones verticales) */
+/* Smartphones verticales (< 768px) */
+@media (max-width: 768px) {
+
+    /* KPI Grid: 1 columna en móvil */
+    .kpi-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Tablas: permitir scroll horizontal */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Chart boxes: altura reducida */
+    .chart-box {
+        padding: 1.25rem;
+        border-radius: 20px;
+    }
+
+    /* Formularios: inputs full width */
+    .form-control, .form-select {
+        font-size: 1rem;
+    }
+
+    /* Botones: full width en móvil cuando están solos */
+    .btn-mobile-full {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Header del dash */
+    .dashboard-header h1 {
+        font-size: 1.6rem !important;
+    }
+
+    /* Tarjetas stat */
+    .stat-value {
+        font-size: 1.4rem !important;
+    }
+
+    /* Filas de datos: apilarse verticalmente */
+    .row > [class^="col-lg"] {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Smartphones más pequeños (< 576px) */
 @media (max-width: 576px) {
     .top-nav-actions {
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
     }
 
     .btn-nav {
         width: 100%;
+        justify-content: center;
     }
 
     .main-content {
-        padding: 12px;
+        padding: 10px;
     }
 
     .nextgen-card {
-        padding: 1.25rem;
+        padding: 1.1rem;
+        border-radius: 18px;
     }
+
+    .glass-card {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    /* Ocultar columnas secundarias en tablas */
+    .table .d-none-mobile { display: none !important; }
+
+    /* Perfil de usuario: compacto */
+    .user-profile span { display: none; }
+    .user-profile { padding: 4px 8px 4px 4px; }
 }
+
 
 /* Next-Gen Design System */
 .nextgen-card {

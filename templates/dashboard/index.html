@@ -76,7 +76,7 @@
 <div class="kpi-grid">
     {% if session.get('rol') in ['ADMINISTRADOR', 'GERENTE_EMPRESA'] %}
     <!-- Admin & Gerente View -->
-    {% if session.get('rol') == 'GERENTE_EMPRESA' %}
+    {% if empresa_capital is defined and empresa_capital > 0 %}
     <div class="nextgen-card border border-success border-2 shadow-lg">
         <div class="card-icon-box bg-success text-white">
             <i class="fa-solid fa-building-columns fs-5"></i>

@@ -1,45 +1,123 @@
 {% extends 'layout/base.html' %}
-{% block title %}Mi Empresa - PrestaPro{% endblock %}
+{% block title %}Mi Empresa | {{ session.get('empresa_nombre', 'PrestaPro') }}{% endblock %}
 
 {% block content %}
-<div class="row g-4 mb-4">
-    <div class="col-12">
-        <h2 class="h4 mb-0 fw-bold">Configuración de Mi Empresa</h2>
-        <p class="text-muted mb-0">Gestiona los detalles y el capital inicial de tu empresa</p>
-    </div>
-</div>
-
-<div class="row g-4">
-    <div class="col-12 col-lg-8 mx-auto">
-        <div class="glass-card p-4">
-            <form method="POST" action="{{ url_for('auth.mi_empresa') }}">
-                <div class="mb-4">
-                    <label class="form-label text-muted small fw-bold">NOMBRE DE LA EMPRESA</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-0"><i class="fa-solid fa-building text-primary"></i></span>
-                        <input type="text" name="nombre" class="form-control border-0 bg-light" value="{{ empresa.nombre if empresa else '' }}" required placeholder="Ingresa el nombre de tu empresa">
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label text-muted small fw-bold">CAPITAL INICIAL / ACTUAL OPERATIVO</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-0"><i class="fa-solid fa-sack-dollar text-success"></i></span>
-                        <input type="number" step="0.01" min="0" name="capital_inicial" class="form-control border-0 bg-light fw-bold text-success fs-5" value="{{ empresa.capital_inicial if empresa else '0.00' }}" required placeholder="Ej. 100000">
-                    </div>
-                    <div class="form-text">
-                        Este monto es el balance base utilizado para aprobar y desembolsar préstamos, y se actualizará automáticamente con los pagos recabados.
-                    </div>
-                </div>
-
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <a href="{{ url_for('main.index') }}" class="btn btn-light rounded-pill px-4">Cancelar</a>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">
-                        <i class="fa-solid fa-save me-2"></i> Guardar Cambios
-                    </button>
-                </div>
-            </form>
+<div class="animate-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-black mb-1" style="font-size:2rem; letter-spacing:-0.04em;">
+                <i class="fa-solid fa-building-columns text-success me-2"></i>Mi Empresa
+            </h1>
+            <p class="text-muted fw-medium mb-0">Administra los datos y fondos de tu empresa</p>
         </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Card: Nombre de la Empresa -->
+        <div class="col-lg-6">
+            <div class="nextgen-card h-100">
+                <h5 class="fw-black mb-3"><i class="fa-solid fa-pen-to-square text-primary me-2"></i>Datos Generales</h5>
+                <form method="POST">
+                    <input type="hidden" name="accion" value="actualizar_nombre">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre de la Empresa</label>
+                        <input type="text" name="nombre" class="form-control form-control-lg"
+                               value="{{ empresa.nombre if empresa else '' }}"
+                               placeholder="Ej: Financiera Los Alamos" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary fw-bold px-4 rounded-pill">
+                        <i class="fa-solid fa-floppy-disk me-2"></i>Guardar Nombre
+                    </button>
+                </form>
+
+                {% if empresa %}
+                <hr class="my-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-3 rounded-3 bg-success bg-opacity-10">
+                        <i class="fa-solid fa-coins text-success fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Capital Disponible</div>
+                        <div class="h3 fw-black text-success mb-0">${{ "{:,.2f}".format(empresa.capital_inicial) }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Card: Inyectar Capital -->
+        <div class="col-lg-6">
+            <div class="nextgen-card h-100 border border-success border-2">
+                <h5 class="fw-black mb-1 text-success"><i class="fa-solid fa-arrow-trend-up me-2"></i>Inyectar Capital</h5>
+                <p class="text-muted small mb-3">Cada inyección se acumula al fondo disponible y queda registrada con fecha y monto.</p>
+                {% if empresa %}
+                <form method="POST">
+                    <input type="hidden" name="accion" value="inyectar_capital">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Monto a Inyectar ($)</label>
+                        <input type="number" name="monto" class="form-control form-control-lg"
+                               min="0.01" step="0.01" placeholder="0.00" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Descripción / Concepto <span class="text-muted fw-normal">(opcional)</span></label>
+                        <input type="text" name="descripcion" class="form-control"
+                               placeholder="Ej: Aporte socio, Negociación #001...">
+                    </div>
+                    <button type="submit" class="btn btn-success fw-bold px-4 rounded-pill w-100">
+                        <i class="fa-solid fa-plus-circle me-2"></i>Registrar Inyección
+                    </button>
+                </form>
+                {% else %}
+                <div class="alert alert-warning">Primero guarda el nombre de la empresa para poder inyectar capital.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Historial de Inyecciones -->
+        <div class="col-12">
+            <div class="nextgen-card">
+                <h5 class="fw-black mb-4">
+                    <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Historial de Inyecciones
+                </h5>
+                {% if inyecciones %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr class="text-muted" style="font-size:0.72rem; letter-spacing:0.05em;">
+                                <th class="py-3">FECHA</th>
+                                <th class="py-3 text-end">MONTO</th>
+                                <th class="py-3">CONCEPTO / DESCRIPCIÓN</th>
+                                <th class="py-3">REGISTRADO POR</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inj in inyecciones %}
+                            <tr>
+                                <td class="py-3 fw-bold">{{ inj.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td class="py-3 text-end fw-black text-success fs-6">${{ "{:,.2f}".format(inj.monto) }}</td>
+                                <td class="py-3 text-muted">{{ inj.descripcion or '—' }}</td>
+                                <td class="py-3">
+                                    {% if inj.registrado_por %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">
+                                        {{ inj.registrado_por.nombre }}
+                                    </span>
+                                    {% else %}—{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="py-5 text-center text-muted">
+                    <i class="fa-solid fa-inbox fs-1 opacity-25 d-block mb-3"></i>
+                    Aún no hay inyecciones de capital registradas.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}
