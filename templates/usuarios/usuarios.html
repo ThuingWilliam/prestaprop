@@ -105,10 +105,12 @@
                 <div class="mb-4">
                     <label class="form-label small fw-bold text-muted">Rol de Acceso</label>
                     <select id="rolSelect" name="rol" class="form-select rounded-pill px-3" required onchange="if(typeof toggleEmpresa === 'function') toggleEmpresa(this.value)">
+                        {% if session.get('rol') == 'ADMINISTRADOR' %}
                         <option value="ADMINISTRADOR" {{ 'selected' if usuario and usuario.rol.value == 'ADMINISTRADOR' else '' }}>Administrador Global</option>
                         <option value="GERENTE_EMPRESA" {{ 'selected' if usuario and usuario.rol.value == 'GERENTE_EMPRESA' else '' }}>Gerente de Empresa</option>
-                        <option value="OFICIAL" {{ 'selected' if usuario and usuario.rol.value == 'OFICIAL' else '' }}>Oficial de Préstamos</option>
-                        <option value="COBRADOR" {{ 'selected' if usuario and usuario.rol.value == 'COBRADOR' else '' }}>Cobrador Autorizado</option>
+                        {% endif %}
+                        <option value="OFICIAL_COBRO" {{ 'selected' if usuario and usuario.rol.value == 'OFICIAL_COBRO' else '' }}>Oficial de Préstamos</option>
+                        <option value="COBRADOR_AUTORIZADO" {{ 'selected' if usuario and usuario.rol.value == 'COBRADOR_AUTORIZADO' else '' }}>Cobrador Autorizado</option>
                     </select>
                 </div>
                 

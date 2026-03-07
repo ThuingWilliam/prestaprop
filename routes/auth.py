@@ -95,11 +95,19 @@ def nuevo_usuario():
             else:
                 empresa_id_asignada = usuario_actual.empresa_id
             
+            rol_solicitado = RolUsuario(request.form.get('rol'))
+            
+            # Validación de seguridad: el gerente solo puede crear Oficiales o Cobradores
+            if session.get('rol') == RolUsuario.GERENTE_EMPRESA.value:
+                if rol_solicitado not in [RolUsuario.OFICIAL_COBRO, RolUsuario.COBRADOR_AUTORIZADO]:
+                    flash('No tienes permiso para asignar este rol.', 'danger')
+                    return redirect(url_for('auth.listar_usuarios'))
+
             nuevo = Usuario(
                 nombre=request.form.get('nombre'),
                 email=request.form.get('email'),
                 username=request.form.get('username'),
-                rol=RolUsuario(request.form.get('rol')),
+                rol=rol_solicitado,
                 empresa_id=empresa_id_asignada
             )
             nuevo.set_password(request.form.get('password'))
@@ -139,10 +147,23 @@ def editar_usuario(id):
             return redirect(url_for('auth.listar_usuarios'))
             
         if request.method == 'POST':
+            # Validación de seguridad para evitar saltos de privilegio
+            rol_solicitado = RolUsuario(request.form.get('rol'))
+            if session.get('rol') == RolUsuario.GERENTE_EMPRESA.value:
+                # El gerente no puede ascender a un super admin a menos que él mismo lo sea (lo cual es imposible)
+                # Tampoco puede ascenderse a o crear otro gerente, ni degradar a su propio jefe.
+                # Nota: si trata de editar un admin o un gerente, lo ideal es bloquear.
+                if rol_solicitado not in [RolUsuario.OFICIAL_COBRO, RolUsuario.COBRADOR_AUTORIZADO]:
+                    flash('No tienes permiso para conceder este rol.', 'danger')
+                    return redirect(url_for('auth.listar_usuarios'))
+                if usuario.rol in [RolUsuario.ADMINISTRADOR, RolUsuario.GERENTE_EMPRESA] and usuario.id != session.get('usuario_id'):
+                    flash('No puedes editar roles de gerentes o administradores.', 'danger')
+                    return redirect(url_for('auth.listar_usuarios'))
+                    
             usuario.nombre = request.form.get('nombre')
             usuario.email = request.form.get('email')
             usuario.username = request.form.get('username')
-            usuario.rol = RolUsuario(request.form.get('rol'))
+            usuario.rol = rol_solicitado
             
             if session.get('rol') == RolUsuario.ADMINISTRADOR.value:
                 emp_id = request.form.get('empresa_id')

@@ -4,7 +4,9 @@ Ejecutar: venv\\Scripts\\python.exe scripts/migrate_inyecciones.py
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from database import engine
+from dotenv import load_dotenv
+load_dotenv()
+from database import engine, Base
 
 def migrar():
     from sqlalchemy import text

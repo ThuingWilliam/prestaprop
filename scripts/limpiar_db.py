@@ -4,8 +4,10 @@ from dotenv import load_dotenv
 # Cargar el .env (Asegúrate de que estás apuntando a Neon si quieres borrar allí)
 load_dotenv()
 
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import SessionLocal
-from models import Usuario, Cliente, Empresa, Prestamo, CuotaProgramada, Pago, BitacoraAuditoria, AplicacionPago
+from models import Usuario, Empresa, Cliente, Prestamo, CuotaProgramada, Pago, BitacoraAuditoria, ProductoPrestamo, AplicacionPago
 from models.enums import RolUsuario
 
 def resetear_base_datos():
