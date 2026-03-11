@@ -1,0 +1,161 @@
+{% extends 'layout/base.html' %}
+{% block title %}Gestión de Empresas | PrestaPro{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h2 class="fw-black m-0" style="letter-spacing: -0.04em;">Gestión de Empresas</h2>
+            <p class="text-muted fw-medium">Crea empresas, inyecta capital y consulta el historial</p>
+        </div>
+        <button class="btn btn-dark rounded-pill px-4 py-2 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#nuevaEmpresaModal">
+            <i class="fa-solid fa-plus me-2"></i>Nueva Empresa
+        </button>
+    </div>
+
+    <!-- ===== SECCIÓN 1: Tarjetas de Empresas ===== -->
+    <div class="row g-4 mb-5">
+        {% for emp in empresas %}
+        <div class="col-md-6 col-lg-4">
+            <div class="bg-white p-4 shadow-sm border border-light h-100" style="border-radius: 20px;">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width: 48px; height: 48px; border: 1px dashed rgba(67,97,238,.4);">
+                        <i class="fa-solid fa-building"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-black mb-0">{{ emp.nombre }}</h5>
+                        <span class="text-muted small">Desde {{ emp.creado_en.strftime('%d/%m/%Y') }}</span>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between py-2 border-top border-bottom border-light mb-3">
+                    <span class="text-muted small fw-bold"><i class="fa-solid fa-users me-1"></i>{{ emp.usuarios_count }} Usuarios</span>
+                    <span class="fw-black text-success">${{ "{:,.2f}".format(emp.capital_inicial) }}</span>
+                </div>
+                <a href="{{ url_for('auth.listar_usuarios') }}" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold w-100">
+                    Ver Personal
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="text-center p-5 bg-white border border-light rounded-4">
+                <i class="fa-solid fa-city fa-3x mb-3 text-secondary opacity-25"></i>
+                <h5 class="fw-black">Sin Empresas Registradas</h5>
+                <p class="text-muted">Usa el botón superior para crear tu primera empresa.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ===== SECCIÓN 2: Inyectar Capital ===== -->
+    {% if empresas %}
+    <div class="glass-card p-0 border-0 overflow-hidden shadow-lg mb-5 animate-fade-in" style="animation-delay:.1s">
+        <div class="p-4 px-5 bg-dark text-white d-flex align-items-center gap-3">
+            <i class="fa-solid fa-money-bill-wave text-success"></i>
+            <h6 class="m-0 fw-black text-uppercase" style="font-size:.75rem;letter-spacing:.1em">Inyectar Capital</h6>
+        </div>
+        <div class="p-4 px-5">
+            <form method="POST" action="{{ url_for('auth.inyectar_capital_admin') }}" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted">Empresa Destino</label>
+                    <select name="empresa_id" class="form-select rounded-3 border-2" required>
+                        <option value="" disabled selected>— Selecciona empresa —</option>
+                        {% for emp in empresas %}
+                        <option value="{{ emp.id }}">{{ emp.nombre }} (${{ "{:,.2f}".format(emp.capital_inicial) }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Monto ($)</label>
+                    <input type="number" name="monto" min="1" step="0.01" class="form-control rounded-3 border-2" placeholder="0.00" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Descripción</label>
+                    <input type="text" name="descripcion" class="form-control rounded-3 border-2" placeholder="Nota opcional">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100 rounded-pill fw-black py-2">
+                        <i class="fa-solid fa-plus me-1"></i> Inyectar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ===== SECCIÓN 3: Historial de Inyecciones ===== -->
+    <div class="glass-card p-0 border-0 overflow-hidden shadow-lg animate-fade-in" style="animation-delay:.2s">
+        <div class="p-4 px-5 bg-dark text-white d-flex align-items-center gap-3">
+            <i class="fa-solid fa-clock-rotate-left text-warning"></i>
+            <h6 class="m-0 fw-black text-uppercase" style="font-size:.75rem;letter-spacing:.1em">Historial de Capital Inyectado</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr class="text-muted fw-black" style="font-size:.65rem;text-transform:uppercase;">
+                        <th class="ps-5 py-4">Fecha</th>
+                        <th class="py-4">Empresa</th>
+                        <th class="py-4">Monto</th>
+                        <th class="py-4">Descripción</th>
+                        <th class="pe-5 py-4">Registrado por</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for iny in inyecciones %}
+                    <tr>
+                        <td class="ps-5 py-4">
+                            <div class="fw-black text-dark">{{ iny.fecha.strftime('%d %b, %Y') }}</div>
+                            <div class="text-muted small fw-bold">{{ iny.fecha.strftime('%H:%M') }}</div>
+                        </td>
+                        <td class="py-4">
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 fw-bold">
+                                {{ iny.empresa.nombre if iny.empresa else '—' }}
+                            </span>
+                        </td>
+                        <td class="py-4 fw-black text-success">${{ "{:,.2f}".format(iny.monto) }}</td>
+                        <td class="py-4 text-muted fw-bold small">{{ iny.descripcion or '—' }}</td>
+                        <td class="pe-5 py-4 text-muted small fw-bold">{{ iny.registrado_por.nombre if iny.registrado_por else '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-inbox fa-2x mb-2 d-block opacity-25"></i>
+                            Sin movimientos de capital registrados aún.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Empresa -->
+<div class="modal fade" id="nuevaEmpresaModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+            <div class="modal-header border-0 px-4 pt-4">
+                <h5 class="modal-title fw-black"><i class="fa-solid fa-building me-2 text-primary"></i>Nueva Empresa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-4">
+                <form method="POST" action="{{ url_for('auth.admin_empresas') }}">
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">Nombre Comercial</label>
+                        <input type="text" name="nombre" class="form-control form-control-lg rounded-3 border-2 bg-light" placeholder="Ej. Préstamos El Sol S.A." required>
+                        <div class="form-text text-muted small mt-1">
+                            <i class="fa-solid fa-circle-info me-1"></i>Luego asignas gerentes y capital desde este mismo panel.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-dark w-100 py-3 rounded-pill fw-black">
+                        Crear Empresa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

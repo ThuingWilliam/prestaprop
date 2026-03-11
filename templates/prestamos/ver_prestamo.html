@@ -10,7 +10,7 @@
             <p class="text-muted fw-medium">Análisis detallado de la operación #{{ prestamo.numero_prestamo }}</p>
         </div>
         <div class="d-flex gap-3">
-            {% if session.get('rol') == 'ADMINISTRADOR' %}
+            {% if session.get('rol') in ['ADMINISTRADOR', 'GERENTE_EMPRESA'] %}
             <button class="btn btn-warning rounded-pill px-4 py-3 fw-black shadow-lg" data-bs-toggle="modal" data-bs-target="#ajustarTasaModal">
                 <i class="fa-solid fa-percent me-2"></i>Ajustar Tasa
             </button>

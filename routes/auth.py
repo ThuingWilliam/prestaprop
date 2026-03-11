@@ -193,8 +193,11 @@ def editar_usuario(id):
 
 @auth_bp.route('/mi-empresa', methods=['GET', 'POST'])
 @login_required
-@admin_or_gerente_required
 def mi_empresa():
+    if session.get('rol') != RolUsuario.GERENTE_EMPRESA.value:
+        flash('Acceso denegado. Solo los gerentes pueden acceder a esta sección.', 'danger')
+        return redirect(url_for('main.index'))
+
     db = SessionLocal()
     try:
         usuario = db.query(Usuario).get(session.get('usuario_id'))
@@ -254,3 +257,88 @@ def mi_empresa():
         return render_template('auth/mi_empresa.html', empresa=usuario.empresa, inyecciones=inyecciones)
     finally:
         db.close()
+
+# Panel Maestro de Empresas (Solo Administrador)
+@auth_bp.route('/admin/empresas', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_empresas():
+    db = SessionLocal()
+    try:
+        if request.method == 'POST':
+            nombre = request.form.get('nombre')
+            if not nombre:
+                flash('El nombre de la empresa es obligatorio.', 'danger')
+            else:
+                nueva_empresa = Empresa(nombre=nombre, capital_inicial=Decimal('0'))
+                db.add(nueva_empresa)
+                db.commit()
+                # Registrar auditoría
+                registrar_auditoria(
+                    db, tabla='empresas', registro_id=nueva_empresa.id, accion='INSERT',
+                    usuario_id=session.get('usuario_id'),
+                    descripcion=f"Administrador creó una nueva empresa maestra: {nombre}"
+                )
+                flash(f"Empresa '{nombre}' creada satisfactoriamente.", "success")
+            return redirect(url_for('auth.admin_empresas'))
+            
+        # Generar listado con contadores
+        empresas = db.query(Empresa).order_by(Empresa.creado_en.asc()).all()
+        for emp in empresas:
+            emp.usuarios_count = db.query(Usuario).filter(Usuario.empresa_id == emp.id).count()
+
+        # Historial de inyecciones de todas las empresas
+        inyecciones = db.query(InyeccionCapital).order_by(InyeccionCapital.fecha.desc()).limit(50).all()
+
+        return render_template('auth/admin_empresas.html', empresas=empresas, inyecciones=inyecciones)
+    finally:
+        db.close()
+
+# Inyección de Capital por el Administrador a cualquier empresa
+@auth_bp.route('/admin/inyectar-capital', methods=['POST'])
+@login_required
+@admin_required
+def inyectar_capital_admin():
+    db = SessionLocal()
+    try:
+        empresa_id = request.form.get('empresa_id')
+        try:
+            monto = Decimal(request.form.get('monto') or '0')
+        except:
+            monto = Decimal('0')
+        descripcion = request.form.get('descripcion', '')
+
+        if not empresa_id:
+            flash('Empresa no especificada.', 'danger')
+            return redirect(url_for('auth.admin_empresas'))
+
+        empresa = db.query(Empresa).filter(Empresa.id == empresa_id).first()
+        if not empresa:
+            flash('Empresa no encontrada.', 'danger')
+            return redirect(url_for('auth.admin_empresas'))
+
+        if monto <= 0:
+            flash('El monto debe ser mayor a cero.', 'danger')
+            return redirect(url_for('auth.admin_empresas'))
+
+        inyeccion = InyeccionCapital(
+            empresa_id=empresa.id,
+            monto=monto,
+            descripcion=descripcion,
+            registrado_por_id=session.get('usuario_id')
+        )
+        db.add(inyeccion)
+        empresa.capital_inicial += monto
+        registrar_auditoria(
+            db, tabla='empresas', registro_id=empresa.id, accion='UPDATE',
+            usuario_id=session.get('usuario_id'),
+            descripcion=f"Inyección de capital ${monto:,.2f} a empresa '{empresa.nombre}'"
+        )
+        db.commit()
+        flash(f"Capital de ${monto:,.2f} inyectado a '{empresa.nombre}' exitosamente.", 'success')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error al inyectar capital: {e}', 'danger')
+    finally:
+        db.close()
+    return redirect(url_for('auth.admin_empresas'))

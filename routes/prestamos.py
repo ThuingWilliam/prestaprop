@@ -276,17 +276,33 @@ def descargar_recibo(pago_id):
     try:
         from models import Pago
         from services.prestamo_service import generar_recibo_pdf_bytes
-        from flask import Response
         
         pago = db.query(Pago).filter(Pago.id == pago_id).first()
         if not pago:
             flash('Cobro no encontrado', 'error')
             return redirect(url_for('main.index'))
             
-        # Seguridad: Solo admin o el oficial que creó el préstamo/cliente
+        # Seguridad: Admin puede bajar todo. Si es Gerente, Oficial o Cobrador, pueden si el préstamo pertenece a su empresa. 
+        # (Si no tienen empresa, deben ser creadores originales).
         user_id = session.get('usuario_id')
         user_rol = str(session.get('rol', ''))
-        if user_rol != "ADMINISTRADOR" and str(pago.prestamo.creado_por_usuario_id) != user_id:
+        
+        acceso_permitido = False
+        if user_rol == "ADMINISTRADOR":
+            acceso_permitido = True
+        elif user_rol in ["GERENTE_EMPRESA", "OFICIAL_COBRO", "COBRADOR_AUTORIZADO"]:
+            # Obtener el usuario actual para verificar su empresa
+            usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
+            if usuario_actual and usuario_actual.empresa_id:
+                if pago.prestamo.cliente.empresa_id == usuario_actual.empresa_id:
+                    acceso_permitido = True
+            elif str(pago.prestamo.creado_por_usuario_id) == user_id:
+                acceso_permitido = True
+        else:
+            if str(pago.prestamo.creado_por_usuario_id) == user_id:
+                acceso_permitido = True
+                
+        if not acceso_permitido:
             flash('Acceso denegado al recibo', 'danger')
             return redirect(url_for('main.index'))
             
@@ -317,9 +333,17 @@ def descargar_resumen(id):
         user_rol = str(session.get('rol', ''))
         
         query = db.query(Prestamo).filter(Prestamo.id == id)
+        
         if user_rol != "ADMINISTRADOR":
-            query = query.filter(Prestamo.creado_por_usuario_id == user_id)
-            
+            if user_rol in ["GERENTE_EMPRESA", "OFICIAL_COBRO", "COBRADOR_AUTORIZADO"]:
+                usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
+                if usuario_actual and usuario_actual.empresa_id:
+                    query = query.filter(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
+                else:
+                    query = query.filter(Prestamo.creado_por_usuario_id == user_id)
+            else:
+                query = query.filter(Prestamo.creado_por_usuario_id == user_id)
+                
         prestamo = query.first()
         if not prestamo:
             flash('Préstamo no encontrado o sin permisos', 'error')

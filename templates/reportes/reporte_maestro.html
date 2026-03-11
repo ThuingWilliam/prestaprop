@@ -21,6 +21,9 @@
                 <tr class="text-muted fw-black" style="font-size: 0.65rem; text-transform: uppercase;">
                     <th class="ps-5 py-4">Cliente</th>
                     <th class="py-4">Identificación</th>
+                    {% if session.get('rol') == 'ADMINISTRADOR' %}
+                    <th class="py-4">Empresa</th>
+                    {% endif %}
                     <th class="py-4 text-center">Actividad</th>
                     <th class="py-4">Estado</th>
                     <th class="pe-5 py-4 text-end">Acciones</th>
@@ -34,6 +37,9 @@
                         <div class="text-muted small fw-bold">Registrado: {{ c.creado_en.strftime('%d/%m/%Y') }}</div>
                     </td>
                     <td class="py-4 fw-bold text-muted">{{ c.numero_id }}</td>
+                    {% if session.get('rol') == 'ADMINISTRADOR' %}
+                    <td class="py-4 fw-bold text-primary">{{ c.empresa.nombre if c.empresa else 'Indefinida' }}</td>
+                    {% endif %}
                     <td class="py-4 text-center">
                         <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 fw-bold">{{ c.prestamos|length }} Créditos</span>
                     </td>
@@ -81,6 +87,9 @@
                 <tr class="text-muted fw-black" style="font-size: 0.65rem; text-transform: uppercase;">
                     <th class="ps-5 py-4">Ref</th>
                     <th class="py-4">Cliente / Socio</th>
+                    {% if session.get('rol') == 'ADMINISTRADOR' %}
+                    <th class="py-4">Empresa</th>
+                    {% endif %}
                     <th class="py-4">Monto Base</th>
                     <th class="py-4">Tasa</th>
                     <th class="py-4">Estado</th>
@@ -95,6 +104,9 @@
                         <div class="fw-bold text-dark">{{ p.cliente.nombre_completo }}</div>
                         <div class="text-muted small fw-bold">{{ p.creado_en.strftime('%d/%m/%Y') }}</div>
                     </td>
+                    {% if session.get('rol') == 'ADMINISTRADOR' %}
+                    <td class="py-4 fw-bold text-primary" style="font-size: 0.85rem;">{{ p.cliente.empresa.nombre if p.cliente.empresa else 'Indefinida' }}</td>
+                    {% endif %}
                     <td class="py-4 fw-black text-primary">${{ "{:,.2f}".format(p.monto_capital) }}</td>
                     <td class="py-4 fw-bold">{{ (p.tasa_interes_anual * 100)|int }}%</td>
                     <td class="py-4">
@@ -122,6 +134,9 @@
                 <tr class="text-muted fw-black" style="font-size: 0.65rem; text-transform: uppercase;">
                     <th class="ps-5 py-4">Fecha</th>
                     <th class="py-4">Cliente / Socio</th>
+                    {% if session.get('rol') == 'ADMINISTRADOR' %}
+                    <th class="py-4">Empresa</th>
+                    {% endif %}
                     <th class="py-4">Monto Recaudado</th>
                     <th class="py-4">Método</th>
                     <th class="pe-5 py-4 text-end">Referencia</th>
@@ -135,6 +150,9 @@
                         <div class="text-muted small fw-bold">{{ pago.fecha_pago.strftime('%H:%M:%S') }}</div>
                     </td>
                     <td class="py-4 text-dark fw-bold">{{ pago.prestamo.cliente.nombre_completo }}</td>
+                    {% if session.get('rol') == 'ADMINISTRADOR' %}
+                    <td class="py-4 fw-bold text-primary" style="font-size: 0.85rem;">{{ pago.prestamo.cliente.empresa.nombre if pago.prestamo.cliente.empresa else 'Indefinida' }}</td>
+                    {% endif %}
                     <td class="py-4 fw-black text-success">${{ "{:,.2f}".format(pago.monto_recibido) }}</td>
                     <td class="py-4 fw-bold text-muted text-uppercase" style="font-size: 0.7rem;">{{ pago.metodo_pago }}</td>
                     <td class="pe-5 py-4 text-end text-muted small fw-bold">{{ pago.referencia_externa or 'Efectivo' }}</td>
