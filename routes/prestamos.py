@@ -325,37 +325,46 @@ def descargar_recibo(pago_id):
 def descargar_resumen(id):
     db = SessionLocal()
     try:
-        from services.prestamo_service import generar_resumen_pdf_bytes
-        from flask import send_file
-        import io
-        
         user_id = session.get('usuario_id')
         user_rol = str(session.get('rol', ''))
-        
+
         query = db.query(Prestamo).filter(Prestamo.id == id)
-        
+
+        usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
+
         if user_rol != "ADMINISTRADOR":
             if user_rol in ["GERENTE_EMPRESA", "OFICIAL_COBRO", "COBRADOR_AUTORIZADO"]:
-                usuario_actual = db.query(Usuario).filter(Usuario.id == user_id).first()
                 if usuario_actual and usuario_actual.empresa_id:
                     query = query.filter(Prestamo.cliente.has(empresa_id=usuario_actual.empresa_id))
                 else:
                     query = query.filter(Prestamo.creado_por_usuario_id == user_id)
             else:
                 query = query.filter(Prestamo.creado_por_usuario_id == user_id)
-                
+
         prestamo = query.first()
         if not prestamo:
             flash('Préstamo no encontrado o sin permisos', 'error')
             return redirect(url_for('main.index'))
-            
-        pdf_bytes = generar_resumen_pdf_bytes(prestamo)
-        
-        return send_file(
-            io.BytesIO(pdf_bytes),
-            mimetype="application/pdf",
-            as_attachment=True,
-            download_name=f"Reporte_Ejecutivo_{prestamo.numero_prestamo}.pdf"
+
+        # Calcular estadísticas para el reporte
+        from models.enums import EstadoCuota
+        cuotas_pagadas = [c for c in prestamo.tabla_pagos if c.estado == EstadoCuota.PAGADA]
+        cuotas_pendientes = [c for c in prestamo.tabla_pagos if c.estado != EstadoCuota.PAGADA]
+        proximo_vencimiento = cuotas_pendientes[0] if cuotas_pendientes else None
+
+        # Datos del usuario que imprime y su empresa
+        nombre_imprime = (usuario_actual.nombre_completo or usuario_actual.nombre or usuario_actual.username) if usuario_actual else session.get('username', 'N/A')
+        empresa_nombre = (usuario_actual.empresa.nombre if usuario_actual and usuario_actual.empresa else None)
+
+        return render_template(
+            'prestamos/resumen_prestamo.html',
+            prestamo=prestamo,
+            cuotas_pagadas=cuotas_pagadas,
+            cuotas_pendientes=cuotas_pendientes,
+            proximo_vencimiento=proximo_vencimiento,
+            nombre_imprime=nombre_imprime,
+            empresa_nombre=empresa_nombre,
+            fecha_reporte=date.today(),
         )
     finally:
         db.close()

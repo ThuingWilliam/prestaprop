@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estado de Cuenta – {{ prestamo.numero_prestamo }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Outfit', sans-serif; background: #f1f5f9; color: #0f172a; }
+
+    /* ══ Variables ══ */
+    :root {
+      --navy:  #0f172a; --blue: #1d4ed8; --green: #16a34a;
+      --red:   #dc2626; --amber: #d97706; --slate: #64748b;
+      --light: #f8fafc; --border: #e2e8f0;
+    }
+
+    /* ══ Wrapper ══ */
+    .rw { max-width: 900px; margin: 2rem auto; background: #fff; border-radius: 1rem; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.13); }
+
+    /* ══ Membrete ══ */
+    .lh { background: var(--navy); padding: 1.6rem 2.2rem 1.3rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+    .lh .brand { font-size: 1.4rem; font-weight: 900; color: #fff; letter-spacing: -.03em; }
+    .lh .brand-sub { font-size: .65rem; color: rgba(255,255,255,.45); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-top: .1rem; }
+    .lh .ref { text-align: right; }
+    .lh .ref .num { font-size: 1rem; font-weight: 900; color: #60a5fa; }
+    .lh .ref .meta { font-size: .62rem; color: rgba(255,255,255,.45); font-weight: 700; margin-top: .1rem; }
+
+    /* ══ Banner ══ */
+    .sb { background: linear-gradient(90deg, #1e3a5f, #1d4ed8); padding: .5rem 2.2rem; display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+    .sb-i { display: flex; flex-direction: column; }
+    .sb-l { font-size: .5rem; font-weight: 800; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .07em; }
+    .sb-v { font-size: .78rem; font-weight: 900; color: #fff; }
+
+    /* ══ Secciones ══ */
+    .sec { padding: 1.25rem 2.2rem; border-bottom: 1px solid var(--border); }
+    .sec:last-child { border-bottom: none; }
+    .sec-title { font-size: .55rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: var(--slate); margin-bottom: .85rem; display: flex; align-items: center; gap: .4rem; }
+    .sec-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ══ Grid datos ══ */
+    .dg { display: grid; gap: .65rem; }
+    .dg-3 { grid-template-columns: repeat(3, 1fr); }
+    .dg-4 { grid-template-columns: repeat(4, 1fr); }
+    .di .l { font-size: .55rem; font-weight: 800; color: var(--slate); text-transform: uppercase; letter-spacing: .05em; }
+    .di .v { font-size: .88rem; font-weight: 700; color: var(--navy); line-height: 1.2; }
+    .di .v.lg { font-size: 1.05rem; font-weight: 900; }
+    .di .v.blue { color: var(--blue); }
+    .di .v.red  { color: var(--red); }
+    .span2 { grid-column: span 2; }
+    .span4 { grid-column: span 4; }
+
+    /* ══ Tarjetas financieras ══ */
+    .fc { display: grid; grid-template-columns: repeat(4,1fr); gap: .55rem; }
+    .fci { border-radius: .65rem; padding: .8rem 1rem; display: flex; flex-direction: column; gap: .15rem; }
+    .fci-dk { background: var(--navy); }
+    .fci-gn { background: #f0fdf4; border: 1.5px solid #bbf7d0; }
+    .fci-bl { background: #eff6ff; border: 1.5px solid #bfdbfe; }
+    .fci-am { background: #fffbeb; border: 1.5px solid #fde68a; }
+    .fc-lbl { font-size: .52rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+    .fci-dk .fc-lbl { color: rgba(255,255,255,.5); }
+    .fci-gn .fc-lbl { color: #15803d; }
+    .fci-bl .fc-lbl { color: #1d4ed8; }
+    .fci-am .fc-lbl { color: #b45309; }
+    .fc-val { font-size: 1.15rem; font-weight: 900; line-height: 1.1; }
+    .fci-dk .fc-val { color: #fff; }
+    .fci-gn .fc-val { color: #15803d; }
+    .fci-bl .fc-val { color: #1d4ed8; }
+    .fci-am .fc-val { color: #b45309; }
+    .fc-sub { font-size: .58rem; font-weight: 700; opacity: .65; }
+    .fci-dk .fc-sub { color: #fff; }
+
+    /* ══ Progreso ══ */
+    .prg-row { display: flex; gap: .75rem; align-items: center; margin-top: .65rem; }
+    .prg-track { flex: 1; height: 7px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .prg-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #16a34a, #22c55e); }
+    .prg-pct { font-size: .72rem; font-weight: 900; color: var(--green); white-space: nowrap; }
+    .prg-lbls { display: flex; justify-content: space-between; margin-top: .3rem; font-size: .6rem; font-weight: 700; color: var(--slate); }
+
+    /* ══ Tablas ══ */
+    .rt { width: 100%; border-collapse: collapse; font-size: .76rem; }
+    .rt thead tr { background: var(--navy); }
+    .rt thead th { padding: .45rem .65rem; color: rgba(255,255,255,.8); font-size: .56rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+    .rt tbody tr { border-bottom: 1px solid var(--border); }
+    .rt tbody tr:last-child { border-bottom: none; }
+    .rt tbody tr:hover { background: var(--light); }
+    .rt td { padding: .42rem .65rem; color: var(--navy); font-weight: 600; }
+    .rt tfoot td { padding: .48rem .65rem; background: var(--light); font-weight: 800; font-size: .76rem; border-top: 2px solid var(--border); }
+    .tr { text-align: right; } .tc { text-align: center; }
+    .badge { display: inline-block; padding: .18rem .55rem; border-radius: 99px; font-size: .55rem; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
+    .badge.pagada    { background: #dcfce7; color: #15803d; }
+    .badge.vencida   { background: #fee2e2; color: #dc2626; }
+    .badge.parcial   { background: #fef9c3; color: #a16207; }
+    .badge.pendiente { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+    /* ══ Footer del doc ══ */
+    .doc-foot { background: var(--light); border-top: 1px solid var(--border); padding: .75rem 2.2rem; display: flex; justify-content: space-between; align-items: center; font-size: .58rem; color: var(--slate); font-weight: 700; }
+
+    /* ══ Desglose extra ══ */
+    .mt3 { margin-top: .75rem; }
+
+    /* ══ Botón imprimir flotante ══ */
+    .fab { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--navy); color: #fff; border: none; border-radius: 50%; width: 50px; height: 50px; font-size: 1.1rem; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.3); transition: transform .15s; }
+    .fab:hover { transform: scale(1.1); }
+
+    /* ══ PRINT ══ */
+    @media print {
+      body { background: #fff; }
+      .fab { display: none; }
+      .rw { max-width: 100%; border-radius: 0; box-shadow: none; margin: 0; }
+      .lh, .sb { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .fci { -webkit-print-color-adjust: exact; print-color-adjust: exact; break-inside: avoid; }
+      .rt thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .prg-fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      table { page-break-inside: auto; }
+      tr { page-break-inside: avoid; }
+      thead { display: table-header-group; }
+      .sec { padding: .8rem 1.5rem; }
+      .rt td, .rt th { padding: .25rem .45rem; font-size: 7pt; }
+      body { font-size: 8.5pt; }
+      @page { size: A4; margin: 8mm 10mm; }
+    }
+  </style>
+</head>
+<body>
+
+{% set liquidado = ((prestamo.total_pagado / (prestamo.total_a_pagar or 1)) * 100) | round | int %}
+{% set estado_val = prestamo.estado.value if prestamo.estado else 'ACTIVO' %}
+
+<div class="rw">
+
+  <!-- ── MEMBRETE ───────────────────────────────────── -->
+  <div class="lh">
+    <div>
+      <div class="brand">{{ empresa_nombre or 'PrestaPro' }}</div>
+      <div class="brand-sub">Estado de Cuenta Oficial</div>
+    </div>
+    <div class="ref">
+      <div class="num">{{ prestamo.numero_prestamo }}</div>
+      <div class="meta">Emitido: {{ fecha_reporte.strftime('%d/%m/%Y') }}</div>
+      <div class="meta">Por: {{ nombre_imprime }}</div>
+    </div>
+  </div>
+
+  <!-- ── BANNER ─────────────────────────────────────── -->
+  <div class="sb">
+    <div class="sb-i"><span class="sb-l">Estado</span><span class="sb-v">{{ estado_val }}</span></div>
+    <div class="sb-i"><span class="sb-l">Producto</span><span class="sb-v">{{ prestamo.producto.nombre if prestamo.producto else 'Crédito Personal' }}</span></div>
+    <div class="sb-i"><span class="sb-l">Frecuencia</span><span class="sb-v">{{ prestamo.frecuencia.name }}</span></div>
+    <div class="sb-i"><span class="sb-l">Plazo</span><span class="sb-v">{{ prestamo.total_periodos }} cuotas</span></div>
+    <div class="sb-i"><span class="sb-l">Tasa Anual</span><span class="sb-v">{{ ((prestamo.tasa_interes_anual or 0) * 100) | round(2) }}%</span></div>
+    <div class="sb-i"><span class="sb-l">Desembolso</span><span class="sb-v">{{ prestamo.fecha_desembolso.strftime('%d/%m/%Y') if prestamo.fecha_desembolso else '—' }}</span></div>
+  </div>
+
+  <!-- ── DATOS DEL TITULAR ──────────────────────────── -->
+  <div class="sec">
+    <div class="sec-title"><i class="fa-solid fa-user fa-xs"></i> Datos del Titular</div>
+    <div class="dg dg-4">
+      <div class="di span2"><span class="l">Nombre Completo</span><span class="v lg">{{ prestamo.cliente.nombre_completo }}</span></div>
+      <div class="di"><span class="l">Cédula / ID</span><span class="v">{{ prestamo.cliente.numero_id }}</span></div>
+      <div class="di"><span class="l">Teléfono</span><span class="v">{{ prestamo.cliente.telefono or '—' }}</span></div>
+      <div class="di"><span class="l">Correo</span><span class="v">{{ prestamo.cliente.correo or '—' }}</span></div>
+      <div class="di"><span class="l">Ocupación</span><span class="v">{{ prestamo.cliente.ocupacion or '—' }}</span></div>
+      <div class="di"><span class="l">Ingreso Mensual</span><span class="v">{% if prestamo.cliente.ingreso_mensual %}${{ "{:,.2f}".format(prestamo.cliente.ingreso_mensual) }}{% else %}—{% endif %}</span></div>
+      <div class="di span4"><span class="l">Dirección</span><span class="v">{{ prestamo.cliente.direccion or '—' }}</span></div>
+    </div>
+  </div>
+
+  <!-- ── RESUMEN FINANCIERO ──────────────────────────── -->
+  <div class="sec">
+    <div class="sec-title"><i class="fa-solid fa-chart-pie fa-xs"></i> Resumen Financiero</div>
+    <div class="fc">
+      <div class="fci fci-dk">
+        <span class="fc-lbl">Capital Otorgado</span>
+        <span class="fc-val">${{ "{:,.2f}".format(prestamo.monto_capital or 0) }}</span>
+        <span class="fc-sub">Monto financiado</span>
+      </div>
+      <div class="fci fci-gn">
+        <span class="fc-lbl">Total Pagado</span>
+        <span class="fc-val">${{ "{:,.2f}".format(prestamo.total_pagado) }}</span>
+        <span class="fc-sub">{{ cuotas_pagadas|length }}/{{ prestamo.tabla_pagos|length }} cuotas</span>
+      </div>
+      <div class="fci fci-bl">
+        <span class="fc-lbl">Saldo Pendiente</span>
+        <span class="fc-val">${{ "{:,.2f}".format(prestamo.monto_pendiente_total_dinamico or 0) }}</span>
+        <span class="fc-sub">Capital + Interés + Mora</span>
+      </div>
+      <div class="fci fci-am">
+        <span class="fc-lbl">Próxima Cuota</span>
+        {% if proximo_vencimiento %}
+          <span class="fc-val">${{ "{:,.2f}".format(prestamo.proximo_monto_a_pagar) }}</span>
+          <span class="fc-sub">Vence {{ proximo_vencimiento.fecha_vencimiento.strftime('%d/%m/%Y') }}</span>
+        {% else %}
+          <span class="fc-val">—</span>
+          <span class="fc-sub" style="color:#15803d; opacity:1;">✓ Crédito saldado</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Progreso -->
+    <div class="prg-row">
+      <div class="prg-track"><div class="prg-fill" style="width:{{ liquidado }}%;"></div></div>
+      <span class="prg-pct">{{ liquidado }}% pagado</span>
+    </div>
+    <div class="prg-lbls">
+      <span>Pagado: ${{ "{:,.2f}".format(prestamo.total_pagado) }}</span>
+      <span>Total a pagar: ${{ "{:,.2f}".format(prestamo.total_a_pagar or 0) }}</span>
+    </div>
+
+    <!-- Desglose saldos -->
+    <div class="dg dg-4 mt3">
+      <div class="di"><span class="l">Cuota Pactada</span><span class="v blue">${{ "{:,.2f}".format(prestamo.monto_cuota or 0) }}</span></div>
+      <div class="di"><span class="l">Capital Pendiente</span><span class="v">${{ "{:,.2f}".format(prestamo.saldo_capital_dinamico or 0) }}</span></div>
+      <div class="di"><span class="l">Interés Pendiente</span><span class="v">${{ "{:,.2f}".format(prestamo.saldo_interes_dinamico or 0) }}</span></div>
+      <div class="di"><span class="l">Mora Acumulada</span><span class="v red">${{ "{:,.2f}".format(prestamo.saldo_mora_dinamico or 0) }}</span></div>
+    </div>
+  </div>
+
+  <!-- ── HISTORIAL DE PAGOS ──────────────────────────── -->
+  <div class="sec">
+    <div class="sec-title"><i class="fa-solid fa-receipt fa-xs"></i> Historial de Pagos</div>
+    <table class="rt">
+      <thead>
+        <tr>
+          <th>#</th><th>Fecha</th><th class="tr">Recibido</th>
+          <th class="tr">A Capital</th><th class="tr">A Interés</th><th class="tr">A Mora</th>
+          <th class="tc">Método</th><th>Referencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pago in prestamo.pagos | sort(attribute='fecha_pago') %}
+        <tr>
+          <td style="color:var(--slate);font-size:.65rem;">{{ loop.index }}</td>
+          <td>{{ pago.fecha_pago.strftime('%d/%m/%Y') }}</td>
+          <td class="tr" style="font-weight:900;">${{ "{:,.2f}".format(pago.monto_recibido) }}</td>
+          <td class="tr" style="color:var(--blue);">${{ "{:,.2f}".format(pago.aplicado_capital) }}</td>
+          <td class="tr" style="color:#0891b2;">${{ "{:,.2f}".format(pago.aplicado_interes) }}</td>
+          <td class="tr" style="color:var(--red);">${{ "{:,.2f}".format(pago.aplicado_mora) }}</td>
+          <td class="tc"><span class="badge pendiente">{{ pago.metodo_pago.value }}</span></td>
+          <td style="color:var(--slate);">{{ pago.numero_referencia or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--slate);font-style:italic;">Sin pagos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if prestamo.pagos %}
+      <tfoot>
+        <tr>
+          <td colspan="2">TOTALES</td>
+          <td class="tr">${{ "{:,.2f}".format(prestamo.total_pagado) }}</td>
+          <td class="tr" style="color:var(--blue);">${{ "{:,.2f}".format(prestamo.pagos | sum(attribute='aplicado_capital')) }}</td>
+          <td class="tr" style="color:#0891b2;">${{ "{:,.2f}".format(prestamo.pagos | sum(attribute='aplicado_interes')) }}</td>
+          <td class="tr" style="color:var(--red);">${{ "{:,.2f}".format(prestamo.pagos | sum(attribute='aplicado_mora')) }}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+
+  <!-- ── PLAN DE CUOTAS ─────────────────────────────── -->
+  <div class="sec">
+    <div class="sec-title"><i class="fa-solid fa-table-list fa-xs"></i> Plan de Cuotas — Tabla de Amortización</div>
+    <table class="rt">
+      <thead>
+        <tr>
+          <th>#</th><th>Vencimiento</th><th class="tr">Capital</th><th class="tr">Interés</th>
+          <th class="tr">Mora</th><th class="tr">Total Cuota</th>
+          <th class="tr">Pagado</th><th class="tr">Pendiente</th><th class="tc">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in prestamo.tabla_pagos %}
+        {% set pend = (c.total_cuota + c.monto_mora) - (c.capital_pagado + c.interes_pagado + c.mora_pagada) %}
+        <tr>
+          <td style="font-weight:900;color:var(--slate);font-size:.68rem;">{{ c.numero_cuota }}</td>
+          <td>{{ c.fecha_vencimiento.strftime('%d/%m/%Y') }}</td>
+          <td class="tr">${{ "{:,.2f}".format(c.capital_cuota) }}</td>
+          <td class="tr">${{ "{:,.2f}".format(c.interes_cuota) }}</td>
+          <td class="tr" style="color:var(--red);">${{ "{:,.2f}".format(c.monto_mora) }}</td>
+          <td class="tr" style="font-weight:900;">${{ "{:,.2f}".format(c.total_cuota) }}</td>
+          <td class="tr" style="color:var(--green);">${{ "{:,.2f}".format(c.capital_pagado + c.interes_pagado + c.mora_pagada) }}</td>
+          <td class="tr" style="font-weight:900;color:{% if pend > 0 %}var(--red){% else %}var(--slate){% endif %};">${{ "{:,.2f}".format(pend) }}</td>
+          <td class="tc"><span class="badge {{ c.estado.value | lower }}">{{ c.estado.value }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── PIE ────────────────────────────────────────── -->
+  <div class="doc-foot">
+    <span>{{ empresa_nombre or 'PrestaPro' }} &nbsp;·&nbsp; Generado el {{ fecha_reporte.strftime('%d/%m/%Y') }}</span>
+    <span>Emitido por: <strong>{{ nombre_imprime }}</strong></span>
+  </div>
+
+</div><!-- /.rw -->
+
+<!-- Botón flotante -->
+<button class="fab" onclick="window.print()" title="Imprimir / Guardar PDF">
+  <i class="fa-solid fa-print"></i>
+</button>
+
+<script>
+  window.addEventListener('load', function () {
+    // Solo auto-imprimir si la página se abre directamente (no embebida en iframe)
+    if (window.self !== window.top) return;
+    setTimeout(function () { window.print(); }, 500);
+  });
+</script>
+</body>
+</html>
