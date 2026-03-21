@@ -31,3 +31,6 @@ Thumbs.db
 
 # Archivos de exportación DB sensibles
 neon_export.sql
+
+# Evidencias (subidas locales)
+static/uploads/evidencias/

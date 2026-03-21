@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from models import Prestamo, Cliente, ProductoPrestamo, CuotaProgramada, Pago, MetodoPago, Usuario, FrecuenciaPago
-from services.prestamo_service import generar_tabla_amortizacion, aplicar_pago_logica
+from services.prestamo_service import generar_tabla_amortizacion, generar_tabla_fija, generar_tabla_insoluta, aplicar_pago_logica
 from database import SessionLocal, registrar_auditoria
 from .auth import login_required, admin_required, admin_or_gerente_required
 from decimal import Decimal
@@ -43,7 +43,7 @@ def nuevo():
             monto = Decimal(request.form.get('monto') or 0)
             tasa = Decimal(request.form.get('tasa') or 0) / 100
             tipo_tasa = request.form.get('tipo_tasa') # PERIODICA o ANUAL
-            metodo = 'FRANCES' # Forzado siempre a Sistema Francés de Amortización según reglas de negocio
+            metodo = request.form.get('metodo', 'FRANCES')  # FRANCES o FIJO
             frecuencia_str = request.form.get('frecuencia')
             plazo = int(request.form.get('plazo') or 12)
             
@@ -51,12 +51,15 @@ def nuevo():
             es_anual = (tipo_tasa == 'ANUAL')
             fecha_inicio = date.today()
             
-            from services.prestamo_service import generar_tabla_fija
             if metodo == 'FIJO':
                 tabla_datos = generar_tabla_fija(monto, tasa, frecuencia, plazo, fecha_inicio, es_anual=es_anual)
+                total_interes = sum(c["interes_cuota"] for c in tabla_datos)
+            elif metodo == 'INTERES_SOBRE_SALDO':
+                tabla_datos = generar_tabla_insoluta(monto, tasa, plazo, frecuencia, fecha_inicio)
+                total_interes = sum(c["interes_cuota"] for c in tabla_datos)
             else:
                 tabla_datos = generar_tabla_amortizacion(monto, tasa, frecuencia, plazo, fecha_inicio, es_anual=es_anual)
-            total_interes = sum(c["interes_cuota"] for c in tabla_datos)
+                total_interes = sum(c["interes_cuota"] for c in tabla_datos)
             
             # Validar capital de la empresa
             if usuario_actual and usuario_actual.empresa:
@@ -68,6 +71,12 @@ def nuevo():
             
             num_prestamo = f"PRE-{datetime.utcnow().year}-{db.query(Prestamo).count() + 1:04d}"
             
+            # Determinar tasa a guardar
+            if metodo in ['FIJO', 'INTERES_SOBRE_SALDO']:
+                tasa_guardar = tasa # Tasa directa/periódica
+            else:
+                tasa_guardar = tasa if es_anual else (tasa * 24)
+
             prestamo = Prestamo(
                 numero_prestamo=num_prestamo,
                 cliente_id=cliente_id,
@@ -75,24 +84,26 @@ def nuevo():
                 aprobado_por=session.get('usuario_id'),
                 creado_por_usuario_id=session.get('usuario_id'),
                 monto_capital=monto,
-                tasa_interes_anual=tasa if es_anual else (tasa * 24), # Estimación para compatibilidad si no es anual
+                tasa_interes_anual=tasa_guardar,
                 frecuencia=frecuencia,
                 total_periodos=plazo,
-                monto_cuota=tabla_datos[0]["total_cuota"],
+                monto_cuota=tabla_datos[0]["total_cuota"] if tabla_datos else Decimal("0"),
                 total_interes=total_interes,
                 total_a_pagar=monto + total_interes,
                 saldo_capital=monto,
                 saldo_interes=total_interes,
                 fecha_desembolso=fecha_inicio,
                 fecha_primer_pago=fecha_inicio,
-                estado='ACTIVO'
+                estado='ACTIVO',
+                tipo_calculo=metodo
             )
             db.add(prestamo)
             db.flush()
             
-            for d in tabla_datos:
-                cuota = CuotaProgramada(prestamo_id=prestamo.id, **d)
-                db.add(cuota)
+            if tabla_datos:
+                for d in tabla_datos:
+                    cuota = CuotaProgramada(prestamo_id=prestamo.id, **d)
+                    db.add(cuota)
                 
             db.commit()
             
@@ -180,7 +191,7 @@ def registrar_pago():
         )
         db.commit()
 
-        flash(f'Pago procesado. Aplicado a Capital: ${resumen["aplicado_capital"]}', 'success')
+        flash(f'Pago procesado: Capital: ${resumen["aplicado_capital"]} | Interés: ${resumen["aplicado_interes"]} | Mora: ${resumen["aplicado_mora"]}', 'success')
         return redirect(url_for('prestamos.ver', id=prestamo.id))
     except Exception as e:
         db.rollback()
@@ -265,6 +276,49 @@ def ajustar_tasa():
     except Exception as e:
         db.rollback()
         flash(f'Error al ajustar tasa: {e}', 'error')
+        return redirect(url_for('main.index'))
+    finally:
+        db.close()
+
+@prestamos_bp.route('/prestamo/cambiar-tipo', methods=['POST'])
+@login_required
+@admin_or_gerente_required
+def cambiar_tipo_calculo():
+    db = SessionLocal()
+    try:
+        prestamo_id = request.form.get('prestamo_id')
+        nuevo_tipo = request.form.get('nuevo_tipo')
+        nueva_tasa = request.form.get('nueva_tasa')
+        
+        # Convertir nueva_tasa a Decimal si existe
+        nueva_tasa_dec = None
+        if nueva_tasa:
+            nueva_tasa_dec = Decimal(nueva_tasa)
+            
+        prestamo = db.query(Prestamo).filter(Prestamo.id == prestamo_id).first()
+        if not prestamo:
+            flash('Préstamo no encontrado', 'error')
+            return redirect(url_for('main.index'))
+            
+        from services.prestamo_service import cambiar_metodo_calculo_prestamo
+        exito = cambiar_metodo_calculo_prestamo(db, prestamo, nuevo_tipo, nueva_tasa_dec)
+        
+        if exito:
+            # Auditoría
+            registrar_auditoria(
+                db, "prestamos", prestamo.id, "UPDATE",
+                usuario_id=session.get('usuario_id'),
+                descripcion=f"Cambio de método a {nuevo_tipo} con tasa {nueva_tasa}%"
+            )
+            db.commit()
+            flash(f'Sistema de cálculo actualizado a {nuevo_tipo} exitosamente', 'success')
+        else:
+            flash('No se pudo actualizar el sistema de cálculo', 'error')
+            
+        return redirect(url_for('prestamos.ver', id=prestamo.id))
+    except Exception as e:
+        db.rollback()
+        flash(f'Error al cambiar tipo de cálculo: {e}', 'error')
         return redirect(url_for('main.index'))
     finally:
         db.close()

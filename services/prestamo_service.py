@@ -80,43 +80,99 @@ def generar_tabla_amortizacion(capital: Decimal, tasa: Decimal, frecuencia: Frec
 
 def generar_tabla_fija(capital: Decimal, tasa: Decimal, frecuencia: FrecuenciaPago, total_periodos: int, fecha_primer_pago: date, numero_inicio: int = 1, es_anual: bool = True) -> list[dict]:
     """
-    Genera una tabla de amortización con Interés sobre Saldo (Decreciente).
-    El interés se calcula sobre el capital pendiente en cada periodo.
+    Genera una tabla de amortización con Interés Fijo (Flat / Interés Simple).
+
+    Lógica:
+    - La tasa ingresada puede ser ANUAL (se convierte al periodo) o PERIÓDICA (se usa directo).
+    - Interés total = capital × tasa_periodo × total_periodos
+    - Total a pagar = capital + interés total
+    - Cuota fija    = total a pagar / total_periodos
+    - Capital/cuota = capital / total_periodos  (igual en todas)
+    - Interés/cuota = interés total / total_periodos (igual en todas)
+    - La última cuota absorbe el residuo de redondeo para que las sumas exactas coincidan.
     """
-    r = calcular_tasa_periodo(tasa, frecuencia, es_anual)
-    capital_por_periodo = redondear(capital / total_periodos)
-    
+    # Normalizar tasa: si viene como porcentaje entero (ej. 20), convertir a decimal
+    if tasa > Decimal("1"):
+        tasa = tasa / Decimal("100")
+
+    # Obtener tasa por periodo
+    if es_anual:
+        tasa_periodo = tasa / PERIODOS_POR_ANO[frecuencia]
+    else:
+        tasa_periodo = tasa
+
+    # Cálculos base de interés simple (Frecuencia Flat)
+    # Interés Total = Capital * Tasa (según especificación del usuario)
+    interes_total   = redondear(capital * tasa_periodo)
+    total_a_pagar   = capital + interes_total
+
+    capital_cuota   = redondear(capital / Decimal(str(total_periodos)))
+    interes_cuota   = redondear(interes_total / Decimal(str(total_periodos)))
+    cuota_fija      = capital_cuota + interes_cuota
+
     tabla = []
     saldo = capital
     fecha = fecha_primer_pago
 
     for i in range(total_periodos):
         numero_cuota = numero_inicio + i
-        
-        # Interés sobre el saldo actual
-        interes_actual = redondear(saldo * r)
-        
-        if i == total_periodos - 1:
-            capital_actual = saldo
+        es_ultima    = (i == total_periodos - 1)
+
+        if es_ultima:
+            # La última cuota consume exactamente el saldo restante para evitar residuos
+            cap_i    = saldo
+            interes_i = interes_total - sum(r["interes_cuota"] for r in tabla)
+            total_i   = cap_i + interes_i
         else:
-            capital_actual = capital_por_periodo
-            
-        total_cuota = capital_actual + interes_actual
-        saldo = redondear(saldo - capital_actual)
+            cap_i     = capital_cuota
+            interes_i = interes_cuota
+            total_i   = cuota_fija
+
+        saldo = redondear(saldo - cap_i)
 
         tabla.append({
-            "numero_cuota":    numero_cuota,
+            "numero_cuota":      numero_cuota,
             "fecha_vencimiento": fecha,
-            "capital_cuota":   redondear(capital_actual),
-            "interes_cuota":   interes_actual,
-            "total_cuota":     redondear(total_cuota),
-            "saldo_restante":  max(saldo, Decimal("0")),
+            "capital_cuota":     redondear(cap_i),
+            "interes_cuota":     redondear(interes_i),
+            "total_cuota":       redondear(total_i),
+            "saldo_restante":    max(saldo, Decimal("0")),
         })
         fecha = siguiente_fecha_vencimiento(fecha, frecuencia)
 
     return tabla
 
-def aplicar_pago_logica(db: Session, prestamo: Prestamo, monto_recibido: Decimal, fecha_pago: date, metodo: MetodoPago, registrado_por_id: str, referencia: str = None, notas: str = None) -> dict:
+def generar_tabla_insoluta(monto: Decimal, tasa: Decimal, plazo: int, frecuencia: FrecuenciaPago, fecha_inicio: date) -> list:
+    """
+    Genera una tabla de amortización REFERENCIAL para el sistema de Saldo Insoluto.
+    Usa Capital Fijo (Monto/Plazo) + Interés sobre saldo de ese periodo.
+    """
+    tabla = []
+    saldo_restante = monto
+    capital_periodo = redondear(monto / plazo)
+    fecha = fecha_inicio
+
+    for i in range(1, plazo + 1):
+        if i == plazo:
+            capital_periodo = saldo_restante
+            
+        interes_periodo = redondear(saldo_restante * tasa)
+        cuota_total = capital_periodo + interes_periodo
+        saldo_restante -= capital_periodo
+
+        tabla.append({
+            "numero_cuota": i,
+            "fecha_vencimiento": fecha,
+            "capital_cuota": capital_periodo,
+            "interes_cuota": interes_periodo,
+            "total_cuota": cuota_total,
+            "saldo_restante": max(Decimal("0"), saldo_restante)
+        })
+        fecha = siguiente_fecha_vencimiento(fecha, frecuencia)
+
+    return tabla
+
+def aplicar_pago_logica(db: Session, prestamo: Prestamo, monto_recibido: Decimal, fecha_pago: date, metodo: MetodoPago, registrado_por_id: str, referencia: str = None, notas: str = None, pago_existente: Pago = None) -> dict:
     restante = monto_recibido
     resumen = {
         "aplicado_mora":    Decimal("0"),
@@ -128,6 +184,53 @@ def aplicar_pago_logica(db: Session, prestamo: Prestamo, monto_recibido: Decimal
         "nuevo_saldo":      None,
     }
 
+    # --- LÓGICA ESPECIAL: INTERÉS SOBRE SALDO (INSOLUTO) ---
+    if prestamo.tipo_calculo == 'INTERES_SOBRE_SALDO':
+        # 1. Mora (si existe saldo de mora acumulado de cargos manuales o previos)
+        if prestamo.saldo_mora > 0:
+            pago_mora = min(restante, prestamo.saldo_mora)
+            prestamo.saldo_mora -= pago_mora
+            restante -= pago_mora
+            resumen["aplicado_mora"] = pago_mora
+
+        # 2. Interés (Calculado dinámicamente: Saldo Actual * Tasa del periodo)
+        # En este modo, prestamo.tasa_interes_anual guarda la tasa periódica
+        interes_a_cobrar = redondear(prestamo.saldo_capital * prestamo.tasa_interes_anual)
+        pago_interes = min(restante, interes_a_cobrar)
+        restante -= pago_interes
+        resumen["aplicado_interes"] = pago_interes
+
+        # 3. Capital (Todo el resto va a capital)
+        pago_capital = restante
+        restante = Decimal("0")
+        resumen["aplicado_capital"] = pago_capital
+
+        # Registro del pago
+        if not pago_existente:
+            pago = Pago(
+                prestamo_id=prestamo.id, registrado_por=registrado_por_id,
+                fecha_pago=fecha_pago, monto_recibido=monto_recibido,
+                metodo_pago=metodo, numero_referencia=referencia, notas=notas,
+                aplicado_mora=resumen["aplicado_mora"], aplicado_interes=resumen["aplicado_interes"],
+                aplicado_capital=resumen["aplicado_capital"], genero_recalculo=False
+            )
+            db.add(pago)
+        else:
+            pago = pago_existente
+            pago.aplicado_mora = resumen["aplicado_mora"]
+            pago.aplicado_interes = resumen["aplicado_interes"]
+            pago.aplicado_capital = resumen["aplicado_capital"]
+        
+        # Actualizar balances globales
+        prestamo.saldo_capital = redondear(prestamo.saldo_capital - resumen["aplicado_capital"])
+        
+        if prestamo.saldo_capital <= 0:
+            prestamo.estado = EstadoPrestamo.COMPLETADO
+            prestamo.saldo_capital = Decimal("0")
+
+        return resumen
+
+    # --- LÓGICA TRADICIONAL (TABLA DE CUOTAS) ---
     cuotas_pendientes = (
         db.query(CuotaProgramada)
         .filter(
@@ -210,14 +313,21 @@ def aplicar_pago_logica(db: Session, prestamo: Prestamo, monto_recibido: Decimal
         resumen["recalculo"] = True
         restante = Decimal("0")
 
-    pago = Pago(
-        prestamo_id=prestamo.id, registrado_por=registrado_por_id,
-        fecha_pago=fecha_pago, monto_recibido=monto_recibido,
-        metodo_pago=metodo, numero_referencia=referencia, notas=notas,
-        aplicado_mora=resumen["aplicado_mora"], aplicado_interes=resumen["aplicado_interes"],
-        aplicado_capital=resumen["aplicado_capital"], genero_recalculo=resumen["recalculo"]
-    )
-    db.add(pago)
+    if not pago_existente:
+        pago = Pago(
+            prestamo_id=prestamo.id, registrado_por=registrado_por_id,
+            fecha_pago=fecha_pago, monto_recibido=monto_recibido,
+            metodo_pago=metodo, numero_referencia=referencia, notas=notas,
+            aplicado_mora=resumen["aplicado_mora"], aplicado_interes=resumen["aplicado_interes"],
+            aplicado_capital=resumen["aplicado_capital"], genero_recalculo=resumen["recalculo"]
+        )
+        db.add(pago)
+    else:
+        pago = pago_existente
+        pago.aplicado_mora = resumen["aplicado_mora"]
+        pago.aplicado_interes = resumen["aplicado_interes"]
+        pago.aplicado_capital = resumen["aplicado_capital"]
+        pago.genero_recalculo = resumen["recalculo"]
     db.flush()
 
     for app in aplicaciones:
@@ -238,38 +348,62 @@ def aplicar_pago_logica(db: Session, prestamo: Prestamo, monto_recibido: Decimal
 
     return resumen
 
-def reajustar_tasa_prestamo(db: Session, prestamo: Prestamo, nueva_tasa_anual: Decimal, modo: str = "FUTURE_ONLY") -> bool:
+def reajustar_tasa_prestamo(db: Session, prestamo: Prestamo, nueva_tasa_usuario: Decimal, modo: str = "FUTURE_ONLY") -> bool:
     """
     Ajusta la tasa de interés de un préstamo y recalcula las cuotas.
     - FUTURE_ONLY: Solo cambia el interés de las cuotas pendientes/parciales.
     - ALL_PERIODS: Recalcula todo el préstamo desde cero.
     """
-    from models.enums import EstadoCuota
+    tasa_decimal = nueva_tasa_usuario / Decimal("100")
+    prestamo.tasa_interes_anual = tasa_decimal
     
-    tasa_anual_decimal = nueva_tasa_anual / Decimal("100")
-    prestamo.tasa_interes_anual = tasa_anual_decimal
+    # --- Si es SALDO INSOLUTO, solo guardamos la tasa y salimos ---
+    if prestamo.tipo_calculo == 'INTERES_SOBRE_SALDO':
+        return True
+
+    es_fijo = (prestamo.tipo_calculo == 'FIJO')
     
-    r = calcular_tasa_periodo(tasa_anual_decimal, prestamo.frecuencia, es_anual=True)
-    
-    for cuota in prestamo.tabla_pagos:
+    # Sistema Francés / Decreciente: necesita tasa por periodo
+    if not es_fijo:
+        r = calcular_tasa_periodo(tasa_decimal, prestamo.frecuencia, es_anual=True)
+    else:
+        # Sistema Fijo: el interés total se divide en partes iguales
+        nuevo_interes_total = redondear(prestamo.monto_capital * tasa_decimal)
+        interes_fijo_por_cuota = redondear(nuevo_interes_total / Decimal(str(prestamo.total_periodos)))
+
+    for i, cuota in enumerate(prestamo.tabla_pagos):
         # Modo ALL_PERIODS aplica a todas. modo FUTURE_ONLY solo a las no pagadas.
         if modo == "ALL_PERIODS" or cuota.estado != EstadoCuota.PAGADA:
-            # El interés se calcula sobre el capital pendiente antes de esta cuota
-            # En nuestra tabla: saldo_restante de la cuota anterior.
-            if cuota.numero_cuota == 1:
-                saldo_base = prestamo.monto_capital
-            else:
-                saldo_base = prestamo.tabla_pagos[cuota.numero_cuota-2].saldo_restante
             
-            cuota.interes_cuota = redondear(saldo_base * r)
+            if es_fijo:
+                # Caso FIJO: Interés idéntico en todas las cuotas
+                if modo == "ALL_PERIODS" or i == len(prestamo.tabla_pagos) - 1:
+                    # La última cuota de un ajuste global hereda el remanente si es ALL_PERIODS?
+                    # Para simplificar: misma lógica que generar_tabla_fija
+                    if i == len(prestamo.tabla_pagos) - 1 and modo == "ALL_PERIODS":
+                        cuota.interes_cuota = nuevo_interes_total - sum(c.interes_cuota for c in prestamo.tabla_pagos[:i])
+                    else:
+                        cuota.interes_cuota = interes_fijo_por_cuota
+                else:
+                    cuota.interes_cuota = interes_fijo_por_cuota
+            else:
+                # Caso FRANCÉS: Interés sobre saldo
+                if cuota.numero_cuota == 1:
+                    saldo_base = prestamo.monto_capital
+                else:
+                    saldo_base = prestamo.tabla_pagos[cuota.numero_cuota-2].saldo_restante
+                
+                cuota.interes_cuota = redondear(saldo_base * r)
+            
+            # Recalcular total de la cuota (Manteniendo el capital original)
             cuota.total_cuota = cuota.capital_cuota + cuota.interes_cuota
     
-    # Recalcular totales del préstamo
+    # Recalcular totales maestros del préstamo
     prestamo.total_interes = sum(c.interes_cuota for c in prestamo.tabla_pagos)
     prestamo.total_a_pagar = prestamo.monto_capital + prestamo.total_interes
     
-    # Actualizar saldo de intereses maestros
-    prestamo.saldo_interes = sum(c.interes_cuota - c.interes_pagado for c in prestamo.tabla_pagos)
+    # Sincronizar saldos de interés
+    prestamo.saldo_interes = sum(max(c.interes_cuota - c.interes_pagado, Decimal("0")) for c in prestamo.tabla_pagos)
     
     return True
 
@@ -641,3 +775,66 @@ def generar_resumen_pdf_bytes(prestamo: Prestamo) -> bytes:
     pdf.cell(0, 5, "PrestaPro - Inteligencia Financiera", ln=True, align="C")
 
     return bytes(pdf.output())
+def cambiar_metodo_calculo_prestamo(db: Session, prestamo: Prestamo, nuevo_tipo: str, nueva_tasa_pct: Decimal = None) -> bool:
+    """
+    Cambia el tipo de cálculo de un préstamo y regenera todo el historial.
+    """
+    try:
+        # 1. Guardar pagos existentes y resetear saldos
+        pagos_viejos = sorted(prestamo.pagos, key=lambda x: x.fecha_pago)
+        
+        # 2. Actualizar parámetros
+        if nueva_tasa_pct is not None:
+            prestamo.tasa_interes_anual = nueva_tasa_pct / Decimal("100")
+            
+        prestamo.tipo_calculo = nuevo_tipo
+        
+        # 3. Eliminar tabla de amortización actual (esto borra AplicacionPago por cascada)
+        db.query(CuotaProgramada).filter(CuotaProgramada.prestamo_id == prestamo.id).delete()
+        
+        # 4. Regenerar la tabla base (sin pagos)
+        if nuevo_tipo == 'FIJO':
+            tabla = generar_tabla_fija(prestamo.monto_capital, prestamo.tasa_interes_anual, 
+                                     prestamo.total_periodos, prestamo.frecuencia, prestamo.fecha_desembolso)
+        elif nuevo_tipo == 'INTERES_SOBRE_SALDO':
+            tabla = generar_tabla_insoluta(prestamo.monto_capital, prestamo.tasa_interes_anual, 
+                                         prestamo.total_periodos, prestamo.frecuencia, prestamo.fecha_desembolso)
+        else: # FRANCES
+            tabla = generar_tabla_amortizacion(prestamo.monto_capital, prestamo.tasa_interes_anual, 
+                                             prestamo.total_periodos, prestamo.frecuencia, prestamo.fecha_desembolso)
+        
+        # 5. Insertar nuevas cuotas
+        for d in tabla:
+            db.add(CuotaProgramada(
+                prestamo_id=prestamo.id, **d
+            ))
+        db.flush()
+        
+        # 6. Actualizar totales maestros del préstamo basado en la nueva tabla
+        prestamo.total_interes = sum(d["interes_cuota"] for d in tabla)
+        prestamo.total_a_pagar = prestamo.monto_capital + prestamo.total_interes
+        prestamo.monto_cuota = tabla[0]["total_cuota"] if tabla else Decimal("0")
+        
+        # 7. Resetear balances dinámicos antes de re-aplicar pagos
+        prestamo.saldo_capital = prestamo.monto_capital
+        if nuevo_tipo != 'INTERES_SOBRE_SALDO':
+            prestamo.saldo_interes = prestamo.total_interes
+        else:
+            prestamo.saldo_interes = Decimal("0")
+        prestamo.saldo_mora = Decimal("0")
+        prestamo.estado = EstadoPrestamo.ACTIVO
+        
+        # 8. Re-aplicar pagos uno por uno
+        for p in pagos_viejos:
+            aplicar_pago_logica(
+                db=db, prestamo=prestamo, monto_recibido=p.monto_recibido,
+                fecha_pago=p.fecha_pago, metodo=p.metodo_pago,
+                registrado_por_id=p.registrado_por, pago_existente=p
+            )
+            
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        print(f"Error en cambiar_metodo_calculo_prestamo: {e}")
+        return False

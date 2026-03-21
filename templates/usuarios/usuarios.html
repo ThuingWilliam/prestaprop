@@ -26,13 +26,20 @@
         color: #64748b;
         font-weight: 800;
     }
+    .btn-eliminar {
+        transition: background 0.2s, color 0.2s;
+    }
+    .btn-eliminar:hover {
+        background: #dc3545 !important;
+        color: #fff !important;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-5 animate-fade-in">
     <div>
-        <h1 class="fw-black m-0" style="font-size: 2.25rem; letter-spacing: -0.04em;">Personal & Accesos</h1>
+        <h1 class="fw-black m-0" style="font-size: 2.25rem; letter-spacing: -0.04em;">Personal &amp; Accesos</h1>
         <p class="text-muted fw-medium">Administración de credenciales y niveles de seguridad.</p>
     </div>
     {% if not modo %}
@@ -73,11 +80,61 @@
                 <a href="{{ url_for('auth.editar_usuario', id=user.id) }}" class="btn btn-light flex-grow-1 rounded-pill fw-bold small py-2">
                     <i class="fa-solid fa-pen-to-square me-2"></i>Editar
                 </a>
+                {% if user.id | string != session.get('usuario_id') %}
+                <button type="button"
+                    class="btn btn-outline-danger rounded-pill fw-bold small py-2 btn-eliminar px-3"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalEliminar"
+                    data-id="{{ user.id }}"
+                    data-nombre="{{ user.nombre }}"
+                    data-username="{{ user.username }}">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+                {% endif %}
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
+
+<!-- Modal Confirmación Eliminar -->
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-labelledby="modalEliminarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+            <div class="modal-header border-0 px-4 pt-4">
+                <h5 class="modal-title fw-black" id="modalEliminarLabel">
+                    <i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-2">
+                <p class="text-muted">¿Estás seguro de que deseas eliminar al usuario <strong id="modalNombre"></strong>? Esta acción no se puede deshacer.</p>
+                <div class="alert alert-warning rounded-3 small py-2 px-3">
+                    <i class="fa-solid fa-circle-info me-1"></i>
+                    Se eliminará la cuenta <span class="fw-bold" id="modalUsername"></span> permanentemente.
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 gap-2">
+                <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminar" method="POST" action="">
+                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">
+                        <i class="fa-solid fa-trash-can me-2"></i>Eliminar Usuario
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const modalEliminar = document.getElementById('modalEliminar');
+    modalEliminar.addEventListener('show.bs.modal', function (event) {
+        const btn = event.relatedTarget;
+        document.getElementById('modalNombre').textContent = btn.getAttribute('data-nombre');
+        document.getElementById('modalUsername').textContent = '@' + btn.getAttribute('data-username');
+        document.getElementById('formEliminar').action = '/auth/usuarios/eliminar/' + btn.getAttribute('data-id');
+    });
+</script>
 
 {% else %}
 <!-- Formulario Nuevo/Editar -->

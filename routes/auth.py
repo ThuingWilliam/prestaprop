@@ -191,6 +191,81 @@ def editar_usuario(id):
     finally:
         db.close()
 
+@auth_bp.route('/usuarios/eliminar/<uuid:id>', methods=['POST'])
+@login_required
+@admin_or_gerente_required
+def eliminar_usuario(id):
+    db = SessionLocal()
+    try:
+        usuario = db.query(Usuario).get(id)
+        if not usuario:
+            flash('Usuario no encontrado.', 'danger')
+            return redirect(url_for('auth.listar_usuarios'))
+
+        # No puede borrarse a sí mismo
+        if str(id) == session.get('usuario_id'):
+            flash('No puedes eliminar tu propia cuenta.', 'danger')
+            return redirect(url_for('auth.listar_usuarios'))
+
+        # El gerente no puede eliminar admins ni otros gerentes
+        if session.get('rol') == RolUsuario.GERENTE_EMPRESA.value:
+            if usuario.rol in [RolUsuario.ADMINISTRADOR, RolUsuario.GERENTE_EMPRESA]:
+                flash('No tienes permiso para eliminar este usuario.', 'danger')
+                return redirect(url_for('auth.listar_usuarios'))
+            # Solo puede borrar usuarios de su propia empresa
+            usuario_actual = db.query(Usuario).get(session.get('usuario_id'))
+            if not usuario_actual or usuario.empresa_id != usuario_actual.empresa_id:
+                flash('No tienes permiso para eliminar usuarios de otra empresa.', 'danger')
+                return redirect(url_for('auth.listar_usuarios'))
+
+        nombre_eliminado = usuario.username
+        registrar_auditoria(
+            db, tabla='usuarios', registro_id=usuario.id, accion='DELETE',
+            usuario_id=session.get('usuario_id'),
+            descripcion=f"Eliminado usuario: {nombre_eliminado} ({usuario.rol.value})"
+        )
+        db.delete(usuario)
+        db.commit()
+        flash(f"Usuario '{nombre_eliminado}' eliminado correctamente.", 'success')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error al eliminar usuario: {str(e)}', 'danger')
+    finally:
+        db.close()
+    return redirect(url_for('auth.listar_usuarios'))
+
+@auth_bp.route('/admin/empresas/editar/<uuid:id>', methods=['POST'])
+@login_required
+@admin_required
+def editar_empresa(id):
+    db = SessionLocal()
+    try:
+        empresa = db.query(Empresa).filter(Empresa.id == id).first()
+        if not empresa:
+            flash('Empresa no encontrada.', 'danger')
+            return redirect(url_for('auth.admin_empresas'))
+
+        nombre = request.form.get('nombre', '').strip()
+        if not nombre:
+            flash('El nombre de la empresa no puede estar vacío.', 'danger')
+            return redirect(url_for('auth.admin_empresas'))
+
+        nombre_anterior = empresa.nombre
+        empresa.nombre = nombre
+        registrar_auditoria(
+            db, tabla='empresas', registro_id=empresa.id, accion='UPDATE',
+            usuario_id=session.get('usuario_id'),
+            descripcion=f"Nombre cambiado: '{nombre_anterior}' → '{nombre}'"
+        )
+        db.commit()
+        flash(f"Nombre de empresa actualizado a '{nombre}'.", 'success')
+    except Exception as e:
+        db.rollback()
+        flash(f'Error al editar empresa: {str(e)}', 'danger')
+    finally:
+        db.close()
+    return redirect(url_for('auth.admin_empresas'))
+
 @auth_bp.route('/mi-empresa', methods=['GET', 'POST'])
 @login_required
 def mi_empresa():

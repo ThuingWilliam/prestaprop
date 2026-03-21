@@ -45,6 +45,9 @@ class Prestamo(Base):
     # Estado
     estado               = Column(Enum(EstadoPrestamo), default=EstadoPrestamo.PENDIENTE)
 
+    # Método de cálculo: 'FRANCES' o 'FIJO'
+    tipo_calculo         = Column(String(10), nullable=False, default='FRANCES')
+
     # Refinanciamiento
     prestamo_padre_id    = Column(UUID(as_uuid=True), ForeignKey("prestamos.id"), nullable=True)
 
@@ -108,17 +111,23 @@ class Prestamo(Base):
 
     @property
     def saldo_capital_dinamico(self):
-        """Suma de capital pendiente en todas las cuotas."""
+        """Suma de capital pendiente. Si es Saldo Insoluto, usa la columna directa."""
+        if self.tipo_calculo == 'INTERES_SOBRE_SALDO':
+            return self.saldo_capital or Decimal("0")
         return sum(c.capital_cuota - c.capital_pagado for c in self.tabla_pagos)
 
     @property
     def saldo_interes_dinamico(self):
-        """Suma de interés pendiente en todas las cuotas."""
+        """Suma de interés pendiente. Si es Saldo Insoluto, usa la columna directa."""
+        if self.tipo_calculo == 'INTERES_SOBRE_SALDO':
+            return self.saldo_interes or Decimal("0")
         return sum(c.interes_cuota - c.interes_pagado for c in self.tabla_pagos)
 
     @property
     def saldo_mora_dinamico(self):
-        """Suma de mora pendiente en todas las cuotas."""
+        """Suma de mora pendiente. Si es Saldo Insoluto, usa la columna directa."""
+        if self.tipo_calculo == 'INTERES_SOBRE_SALDO':
+            return self.saldo_mora or Decimal("0")
         return sum(c.monto_mora - c.mora_pagada for c in self.tabla_pagos)
 
     @property

@@ -8,6 +8,8 @@ from routes.main import main_bp
 from routes.auth import auth_bp
 from routes.clientes import clientes_bp
 from routes.prestamos import prestamos_bp
+from routes.productos import productos_bp
+from routes.evidencias import evidencias_bp
 from flask import session, request
 from datetime import timedelta
 
@@ -20,13 +22,15 @@ def create_app():
         session.permanent = True
 
     # Inicializar Base de Datos (si es necesario)
-    # Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
 
     # Registrar Blueprints
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(clientes_bp)
     app.register_blueprint(prestamos_bp)
+    app.register_blueprint(productos_bp)
+    app.register_blueprint(evidencias_bp)
 
     return app
 

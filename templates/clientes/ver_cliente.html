@@ -29,22 +29,38 @@
                         {% endif %}
                     </p>
                     
-                    <div class="row g-4 pt-3 border-top">
+                    <div class="row g-3 g-md-4 pt-4 border-top">
                         <div class="col-6 col-md-3">
-                            <div class="small text-muted fw-bold text-uppercase">Liquidación Promedio</div>
-                            <div class="h5 fw-black text-primary">$3,400.00</div>
+                            <div class="small text-muted fw-bold text-uppercase" style="font-size: 0.6rem;">Liquidación Promedio</div>
+                            <div class="h6 fw-black text-primary mb-0">
+                                {% if cliente.liquidacion_promedio %}
+                                ${{ "{:,.2f}".format(cliente.liquidacion_promedio) }}
+                                {% else %}
+                                <span class="text-muted opacity-50">N/A</span>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="small text-muted fw-bold text-uppercase">Antigüedad</div>
-                            <div class="h5 fw-black text-dark">2.4 Años</div>
+                            <div class="small text-muted fw-bold text-uppercase" style="font-size: 0.6rem;">Antigüedad</div>
+                            <div class="h6 fw-black text-dark mb-0">
+                                {{ cliente.antiguedad }}
+                            </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="small text-muted fw-bold text-uppercase">Ingresos Mensuales</div>
-                            <div class="h5 fw-black text-success">${{ "{:,.2f}".format(cliente.ingreso_mensual or 0) }}</div>
+                            <div class="small text-muted fw-bold text-uppercase" style="font-size: 0.6rem;">Ingresos Mensuales</div>
+                            <div class="h6 fw-black text-success mb-0">
+                                {% if cliente.ingreso_mensual %}
+                                ${{ "{:,.2f}".format(cliente.ingreso_mensual) }}
+                                {% else %}
+                                <span class="text-muted opacity-50">N/A</span>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="small text-muted fw-bold text-uppercase">WhatsApp / Celular</div>
-                            <div class="h5 fw-black text-dark">{{ cliente.telefono or 'N/A' }}</div>
+                            <div class="small text-muted fw-bold text-uppercase" style="font-size: 0.6rem;">WhatsApp / Celular</div>
+                            <div class="h6 fw-black text-dark mb-0">
+                                {{ cliente.telefono or 'N/A' }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -78,10 +94,10 @@
                     <thead class="bg-light">
                         <tr class="text-muted fw-black" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em;">
                             <th class="ps-5 py-4">Ref. Operación</th>
-                            <th class="py-4">Configuración</th>
+                            <th class="py-4 d-none d-md-table-cell">Configuración</th>
                             <th class="py-4 text-center">Progreso Pagos</th>
                             <th class="py-4 text-end">Saldos Netos</th>
-                            <th class="py-4 text-center">Calificación</th>
+                            <th class="py-4 text-center d-none d-lg-table-cell">Calificación</th>
                             <th class="pe-5 py-4 text-end">Análisis</th>
                         </tr>
                     </thead>
@@ -92,24 +108,24 @@
                                 <div class="fw-black text-dark" style="font-size: 1.1rem;">#{{ prestamo.numero_prestamo }}</div>
                                 <div class="text-muted small fw-bold">Apertura: {{ prestamo.creado_en.strftime('%d/%m/%Y') }}</div>
                             </td>
-                            <td class="py-4">
+                            <td class="py-4 d-none d-md-table-cell">
                                 <div class="fw-bold text-dark">${{ "{:,.2f}".format(prestamo.monto_capital) }}</div>
                                 <div class="small text-primary fw-bold text-uppercase" style="font-size: 0.65rem;">{{ prestamo.frecuencia.name }} | {{ prestamo.total_periodos }} Cuotas</div>
                             </td>
-                            <td class="py-4" style="width: 200px;">
-                                {% set pct = ((1 - (prestamo.saldo_capital / prestamo.monto_capital)) * 100) | round(0) %}
+                            <td class="py-4" style="min-width: 120px;">
+                                {% set pct = ((1 - (prestamo.saldo_capital / (prestamo.monto_capital or 1))) * 100) | round(0) %}
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="progress flex-grow-1" style="height: 6px; border-radius: 10px; background: #eaedf2;">
-                                        <div class="progress-bar {% if prestamo.estado == 'EN_MORA' %}bg-danger{% else %}bg-primary{% endif %} shadow-sm" style="width: {{ pct }}%"></div>
+                                        <div class="progress-bar {% if prestamo.estado == 'EN_MORA' %}bg-danger{% else %}bg-primary{% endif %} shadow-inset" style="width: {{ pct }}%"></div>
                                     </div>
                                     <span class="small fw-black text-dark" style="font-size: 0.75rem;">{{ pct }}%</span>
                                 </div>
                             </td>
                             <td class="py-4 text-end">
                                 <div class="fw-black text-dark">${{ "{:,.2f}".format(prestamo.saldo_capital + prestamo.saldo_interes) }}</div>
-                                <div class="small text-muted fw-medium" style="font-size: 0.65rem;">Vencimiento Próximo: {{ prestamo.fecha_desembolso.strftime('%d/%m') }}</div>
+                                <div class="small text-muted fw-medium d-none d-md-block" style="font-size: 0.65rem;">Vencimiento Próximo: {{ prestamo.fecha_desembolso.strftime('%d/%m') if prestamo.fecha_desembolso else 'N/A' }}</div>
                             </td>
-                            <td class="py-4 text-center">
+                            <td class="py-4 text-center d-none d-lg-table-cell">
                                 <span class="badge {% if prestamo.estado == 'ACTIVO' %}bg-emerald-500 bg-opacity-10 text-success{% elif prestamo.estado == 'EN_MORA' %}bg-rose-500 bg-opacity-10 text-danger{% else %}bg-slate-500 bg-opacity-10 text-secondary{% endif %} rounded-pill px-3 py-2 fw-black" style="font-size: 0.65rem; border: 1px solid currentColor;">
                                     {{ prestamo.estado }}
                                 </span>
@@ -146,6 +162,52 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Evidencias / Documentos Digitales -->
+    <div class="col-12">
+        <div class="glass-card p-4 border-0 shadow-lg">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h5 class="fw-black m-0"><i class="fa-solid fa-folder-open me-2 text-primary"></i>Expediente Digital</h5>
+                    <p class="small text-muted m-0">Documentos, fotos de identidad y contratos escaneados.</p>
+                </div>
+                <button class="btn btn-white border rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#subirDocumentoModal">
+                    <i class="fa-solid fa-upload me-2 text-primary"></i>Anexar Documento
+                </button>
+            </div>
+
+            <div class="row g-3">
+                {% for ev in cliente.evidencias %}
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="p-3 border rounded-xl bg-light hover-shadow transition-all position-relative overflow-hidden group">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-white p-2 rounded-lg shadow-sm">
+                                {% if ev.extension == 'pdf' %}
+                                <i class="fa-solid fa-file-pdf text-danger fa-2x"></i>
+                                {% else %}
+                                <i class="fa-solid fa-file-image text-primary fa-2x"></i>
+                                {% endif %}
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="fw-black text-dark text-truncate small" title="{{ ev.titulo }}">{{ ev.titulo }}</div>
+                                <div class="text-muted fw-bold" style="font-size: 0.65rem;">{{ ev.fecha_subida.strftime('%d/%m/%Y') }}</div>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('static', filename=ev.ruta_archivo) }}" target="_blank" class="stretched-link"></a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="p-5 text-center bg-light rounded-xl border-dashed border-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-muted mb-3" style="font-size: 2.5rem;"></i>
+                        <p class="text-muted fw-bold m-0">No hay documentos anexados todavía.</p>
+                        <p class="small text-muted opacity-50">Sube fotos de identidad, contratos o comprobantes.</p>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
@@ -226,15 +288,58 @@
                             <label class="form-label small fw-black text-uppercase text-muted">Dirección Residencial</label>
                             <textarea name="direccion" class="form-control bg-light border-0 fw-bold" rows="2">{{ cliente.direccion or '' }}</textarea>
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">Sueldo / Ingresos (Mensual)</label>
+                            <input type="number" step="0.01" name="ingreso_mensual" class="form-control form-control-lg bg-light border-0 fw-black text-success" value="{{ cliente.ingreso_mensual or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-black text-uppercase text-muted">Liquidación Promedio</label>
+                            <input type="number" step="0.01" name="liquidacion_promedio" class="form-control form-control-lg bg-light border-0 fw-black text-primary" value="{{ cliente.liquidacion_promedio or '' }}">
+                        </div>
                         <div class="col-md-12">
-                            <label class="form-label small fw-black text-uppercase text-muted">Sueldo / Ingresos (Opcional)</label>
-                            <input type="number" step="0.01" name="ingreso_mensual" class="form-control form-control-lg bg-light border-0 fw-black text-success" value="{{ cliente.ingreso_mensual }}">
+                            <label class="form-label small fw-black text-uppercase text-muted">Fecha Inicio Laboral (Para Antigüedad)</label>
+                            <input type="date" name="fecha_inicio_laboral" class="form-control form-control-lg bg-light border-0 fw-bold" value="{{ cliente.fecha_inicio_laboral.strftime('%Y-%m-%d') if cliente.fecha_inicio_laboral else '' }}">
                         </div>
                     </div>
                     <div class="mt-5 d-flex gap-3">
                         <button type="submit" class="btn btn-primary flex-grow-1 py-3 rounded-pill fw-black shadow-lg">Guardar Cambios</button>
                         <button type="button" class="btn btn-light px-4 py-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
                     </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Subir Documento -->
+<div class="modal fade" id="subirDocumentoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-modal p-0 border-0 shadow-2xl overflow-hidden">
+            <div class="modal-header bg-dark text-white p-4 px-5 border-0">
+                <div>
+                    <h5 class="modal-title fw-black m-0">Anexar Documento</h5>
+                    <p class="small text-white-50 m-0">El archivo se guardará en la bóveda digital.</p>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 px-5">
+                <form action="{{ url_for('evidencias.subir') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="cliente_id" value="{{ cliente.id }}">
+                    <input type="hidden" name="tipo" value="CLIENTE">
+                    
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Título del Documento</label>
+                        <input type="text" name="titulo" class="form-control form-control-lg bg-light border-0 fw-bold" placeholder="Eje: Cédula Frontal, Contrato..." required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Seleccionar Archivo (JPG, PNG, PDF)</label>
+                        <input type="file" name="archivo" class="form-control form-control-lg bg-light border-0 fw-bold" accept=".jpg,.jpeg,.png,.pdf" required>
+                        <div class="form-text small fw-medium">Máximo: 5MB</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-black shadow-lg mb-3">Subir a la Bóveda</button>
+                    <button type="button" class="btn btn-light w-100 py-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
                 </form>
             </div>
         </div>

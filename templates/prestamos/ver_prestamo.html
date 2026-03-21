@@ -61,17 +61,17 @@
             <h2 class="fw-black m-0" style="letter-spacing: -0.04em;">Resumen del Préstamo</h2>
             <p class="text-muted fw-medium">Análisis detallado de la operación #{{ prestamo.numero_prestamo }}</p>
         </div>
-        <div class="d-flex gap-3">
+        <div class="d-flex flex-column flex-md-row gap-3">
             {% if session.get('rol') in ['ADMINISTRADOR', 'GERENTE_EMPRESA'] %}
-            <button class="btn btn-warning rounded-pill px-4 py-3 fw-black shadow-lg" data-bs-toggle="modal" data-bs-target="#ajustarTasaModal">
-                <i class="fa-solid fa-percent me-2"></i>Ajustar Tasa
+            <button class="btn btn-outline-dark rounded-pill px-4 py-3 fw-black shadow-lg" data-bs-toggle="modal" data-bs-target="#cambiarTipoModal">
+                <i class="fa-solid fa-calculator me-2"></i>Interés
             </button>
             {% endif %}
-            <button class="btn btn-success rounded-pill px-5 py-3 fw-black shadow-lg" data-bs-toggle="modal" data-bs-target="#registrarPagoModal">
-                <i class="fa-solid fa-money-bill-transfer me-2"></i>Cobrar Cuota
+            <button class="btn btn-success rounded-pill px-4 px-md-5 py-3 fw-black shadow-lg text-truncate" data-bs-toggle="modal" data-bs-target="#registrarPagoModal">
+                <i class="fa-solid fa-money-bill-transfer me-2"></i>Registrar Pago
             </button>
             <button onclick="imprimirReporte('{{ url_for('prestamos.descargar_resumen', id=prestamo.id) }}')"
-                    class="btn btn-white border rounded-pill px-4 py-3 fw-bold shadow-sm" title="Guardar / Imprimir Reporte">
+                    class="btn btn-white border rounded-pill px-4 py-3 fw-bold shadow-sm d-none d-md-block" title="Guardar / Imprimir Reporte">
                 <i class="fa-solid fa-print"></i>
             </button>
             <iframe id="reporteFrame" style="display:none;"></iframe>
@@ -136,29 +136,29 @@
                     </div>
                 </div>
 
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="p-3 rounded-4 bg-light border-start border-4 border-dark">
-                            <div class="small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.65rem;">Capital Vigente</div>
-                            <div class="h3 fw-black m-0">${{ "{:,.2f}".format(prestamo.saldo_capital_dinamico or 0) }}</div>
+                <div class="row g-2 g-md-3">
+                    <div class="col-6 col-md-6">
+                        <div class="p-3 rounded-4 bg-light border-start border-4 border-dark h-100">
+                            <div class="small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.6rem;">Capital Vigente</div>
+                            <div class="h4 fw-black m-0">${{ "{:,.2f}".format(prestamo.saldo_capital_dinamico or 0) }}</div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="p-3 rounded-4 bg-primary bg-opacity-5 border-start border-4 border-primary">
-                            <div class="small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.65rem;">Total Pendiente</div>
-                            <div class="h3 fw-black text-primary m-0">${{ "{:,.2f}".format(prestamo.monto_pendiente_total_dinamico or 0) }}</div>
+                    <div class="col-6 col-md-6">
+                        <div class="p-3 rounded-4 bg-primary bg-opacity-5 border-start border-4 border-primary h-100">
+                            <div class="small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.6rem;">Total Pendiente</div>
+                            <div class="h4 fw-black text-primary m-0">${{ "{:,.2f}".format(prestamo.monto_pendiente_total_dinamico or 0) }}</div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="p-3 rounded-4 bg-info bg-opacity-10 border-start border-4 border-info">
-                            <div class="small fw-bold text-info text-uppercase mb-1" style="font-size: 0.65rem;">Interés proyectado</div>
-                            <div class="h4 fw-black text-info m-0">${{ "{:,.2f}".format(prestamo.saldo_interes_dinamico or 0) }}</div>
+                    <div class="col-6 col-md-6">
+                        <div class="p-3 rounded-4 bg-info bg-opacity-10 border-start border-4 border-info h-100">
+                            <div class="small fw-bold text-info text-uppercase mb-1" style="font-size: 0.6rem;">Interés proyectado</div>
+                            <div class="h5 fw-black text-info m-0">${{ "{:,.2f}".format(prestamo.saldo_interes_dinamico or 0) }}</div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="p-3 rounded-4 bg-danger bg-opacity-5 border-start border-4 border-danger">
-                            <div class="small fw-bold text-danger text-uppercase mb-1" style="font-size: 0.65rem;">Mora Pendiente</div>
-                            <div class="h4 fw-black text-danger m-0">${{ "{:,.2f}".format(prestamo.saldo_mora_dinamico or 0) }}</div>
+                    <div class="col-6 col-md-6">
+                        <div class="p-3 rounded-4 bg-danger bg-opacity-5 border-start border-4 border-danger h-100">
+                            <div class="small fw-bold text-danger text-uppercase mb-1" style="font-size: 0.6rem;">Mora Pendiente</div>
+                            <div class="h5 fw-black text-danger m-0">${{ "{:,.2f}".format(prestamo.saldo_mora_dinamico or 0) }}</div>
                         </div>
                     </div>
                 </div>
@@ -180,23 +180,28 @@
     <div class="row g-4 mb-5">
         <div class="col-lg-12">
             <div class="glass-card p-4 bg-dark text-white border-0 shadow-lg" style="background: #1e293b !important;">
-                <div class="row align-items-center">
-                    <div class="col-md-3 border-end border-white border-opacity-10 text-center text-md-start">
-                        <h6 class="text-white-50 small fw-bold text-uppercase mb-2">Modalidad</h6>
-                        <div class="h5 fw-black text-accent m-0">{{ prestamo.frecuencia.name }}</div>
+                <div class="row g-3">
+                    <div class="col-6 col-md-2 border-end-md border-white border-opacity-10">
+                        <h6 class="text-white-50 small fw-bold text-uppercase mb-1" style="font-size: 0.6rem;">Modalidad</h6>
+                        <div class="h6 fw-black text-accent m-0">{{ prestamo.frecuencia.name }}</div>
                     </div>
-                    <div class="col-md-3 border-end border-white border-opacity-10 ps-md-4 text-center text-md-start">
-                        <h6 class="text-white-50 small fw-bold text-uppercase mb-2">Tasa Anual</h6>
-                        <div class="h5 fw-black text-white m-0">{{ ((prestamo.tasa_interes_anual or 0) * 100)|int }}%</div>
+                    <div class="col-6 col-md-3 border-end-md border-white border-opacity-10 ps-md-4">
+                        <h6 class="text-white-50 small fw-bold text-uppercase mb-1" style="font-size: 0.6rem;">Cálculo</h6>
+                        <div class="h6 fw-black text-white m-0 text-truncate">
+                            {{ prestamo.tipo_calculo }}
+                        </div>
                     </div>
-                    <div class="col-md-3 border-end border-white border-opacity-10 ps-md-4 text-center text-md-start">
-                        <h6 class="text-white-50 small fw-bold text-uppercase mb-2">Cuota a Pagar</h6>
-                        <div class="h5 fw-black text-accent m-0">${{ "{:,.2f}".format(prestamo.monto_cuota or 0) }}</div>
-                        <div class="text-white-50 mt-1" style="font-size: 0.6rem;">(Cap + Int)</div>
+                    <div class="col-6 col-md-2 border-end-md border-white border-opacity-10 ps-md-4">
+                        <h6 class="text-white-50 small fw-bold text-uppercase mb-1" style="font-size: 0.6rem;">Tasa</h6>
+                        <div class="h6 fw-black text-white m-0">{{ ((prestamo.tasa_interes_anual or 0) * 100)|int }}%</div>
                     </div>
-                    <div class="col-md-3 ps-md-4 text-center text-md-start">
-                        <h6 class="text-white-50 small fw-bold text-uppercase mb-2">Status Operativo</h6>
-                        <span class="badge {% if prestamo.estado == 'ACTIVO' %}bg-success{% else %}bg-primary{% endif %} rounded-pill px-3 fw-bold">{{ prestamo.estado }}</span>
+                    <div class="col-6 col-md-3 border-end-md border-white border-opacity-10 ps-md-4">
+                        <h6 class="text-white-50 small fw-bold text-uppercase mb-1" style="font-size: 0.6rem;">Cuota</h6>
+                        <div class="h6 fw-black text-accent m-0">${{ "{:,.2f}".format(prestamo.monto_cuota or 0) }}</div>
+                    </div>
+                    <div class="col-12 col-md-2 ps-md-4 text-center text-md-start pt-3 pt-md-0 border-top border-md-top-0 border-white border-opacity-10">
+                        <h6 class="text-white-50 small fw-bold text-uppercase mb-1 d-md-block d-none" style="font-size: 0.6rem;">Status</h6>
+                        <span class="badge {% if prestamo.estado == 'ACTIVO' %}bg-success{% else %}bg-primary{% endif %} rounded-pill px-3 fw-bold w-100 w-md-auto">{{ prestamo.estado }}</span>
                     </div>
                 </div>
             </div>
@@ -225,6 +230,27 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% if prestamo.tipo_calculo == 'INTERES_SOBRE_SALDO' and not prestamo.tabla_pagos %}
+                    <tr>
+                        <td colspan="6" class="p-5 text-center">
+                            <div class="mb-3"><i class="fa-solid fa-scale-balanced text-warning display-4"></i></div>
+                            <h5 class="fw-black text-dark">Sistema de Saldo Insoluto</h5>
+                            <p class="text-muted small mx-auto" style="max-width: 500px;">
+                                Este préstamo no cuenta con cuotas fijas programadas. El interés se calcula dinámicamente sobre el capital pendiente en el momento de cada cobro.
+                            </p>
+                            <div class="d-flex justify-content-center gap-4 mt-4">
+                                <div class="bg-light p-3 rounded-4 border">
+                                    <div class="small text-muted fw-bold text-uppercase" style="font-size: 0.6rem;">Capital Pendiente</div>
+                                    <div class="h4 m-0 fw-black text-primary">${{ "{:,.2f}".format(prestamo.saldo_capital) }}</div>
+                                </div>
+                                <div class="bg-light p-3 rounded-4 border">
+                                    <div class="small text-muted fw-bold text-uppercase" style="font-size: 0.6rem;">Próximo Interés (Estimado)</div>
+                                    <div class="h4 m-0 fw-black text-warning">${{ "{:,.2f}".format(prestamo.saldo_capital * (prestamo.tasa_interes_anual or 0)) }}</div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
                     {% set ns = namespace(found_next=false) %}
                     {% for c in prestamo.tabla_pagos %}
                     {% set es_siguiente_o_vencida = false %}
@@ -296,9 +322,17 @@
                             <div class="small text-muted">{{ pago.numero_referencia or '—' }}</div>
                         </td>
                         <td class="pe-5 py-4 text-end">
-                            <a href="{{ url_for('prestamos.descargar_recibo', pago_id=pago.id) }}" class="btn btn-sm btn-white border rounded-pill shadow-sm fw-bold">
-                                <i class="fa-solid fa-file-pdf text-danger me-1"></i> Recibo
-                            </a>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button class="btn btn-sm btn-white border rounded-pill shadow-sm fw-bold" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#subirDocumentoPagoModal"
+                                        onclick="setPagoId('{{ pago.id }}', '{{ pago.monto_recibido }}')">
+                                    <i class="fa-solid fa-upload text-primary mb-0"></i>
+                                </button>
+                                <a href="{{ url_for('prestamos.descargar_recibo', pago_id=pago.id) }}" class="btn btn-sm btn-white border rounded-pill shadow-sm fw-bold">
+                                    <i class="fa-solid fa-file-pdf text-danger me-1"></i> Recibo
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% else %}
@@ -308,6 +342,52 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Sección de Evidencias / Expediente de Crédito -->
+    <div class="col-12 mb-5 no-print">
+        <div class="glass-card p-4 border-0 shadow-lg">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h5 class="fw-black m-0"><i class="fa-solid fa-folder-closed me-2 text-primary"></i>Expediente de Crédito</h5>
+                    <p class="small text-muted m-0">Documentación de desembolsos, pagarés y comprobantes.</p>
+                </div>
+                <button class="btn btn-white border rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#subirDocumentoPrestamoModal">
+                    <i class="fa-solid fa-upload me-2 text-primary"></i>Anexar Evidencia
+                </button>
+            </div>
+
+            <div class="row g-3">
+                {% for ev in prestamo.evidencias %}
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="p-3 border rounded-xl bg-light hover-shadow transition-all position-relative overflow-hidden group">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-white p-2 rounded-lg shadow-sm">
+                                {% if ev.extension == 'pdf' %}
+                                <i class="fa-solid fa-file-pdf text-danger fa-2x"></i>
+                                {% else %}
+                                <i class="fa-solid fa-file-image text-primary fa-2x"></i>
+                                {% endif %}
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="fw-black text-dark text-truncate small" title="{{ ev.titulo }}">{{ ev.titulo }}</div>
+                                <div class="text-muted fw-bold" style="font-size: 0.65rem;">{{ ev.fecha_subida.strftime('%d/%m/%Y') }}</div>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('static', filename=ev.ruta_archivo) }}" target="_blank" class="stretched-link"></a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="p-5 text-center bg-light rounded-xl border-dashed border-2">
+                        <i class="fa-solid fa-folder-plus text-muted mb-3" style="font-size: 2.5rem;"></i>
+                        <p class="text-muted fw-bold m-0">Aún no hay evidencias anexas para este crédito.</p>
+                        <p class="small text-muted opacity-50">Sube fotos de cheques, transferencias de desembolso o pagarés firmados.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </div>
@@ -328,6 +408,12 @@
         showAllCuotas = !showAllCuotas;
         applyCuotasView();
     }
+    
+    function setPagoId(id, monto) {
+        document.getElementById('modal_pago_id').value = id;
+        document.getElementById('pago_monto_display').innerText = monto;
+    }
+    
     document.addEventListener("DOMContentLoaded", applyCuotasView);
 </script>
 {% endblock %}
@@ -372,34 +458,123 @@
     </div>
 </div>
 
-<!-- Modal Ajustar Tasa -->
-<div class="modal fade" id="ajustarTasaModal" tabindex="-1" aria-hidden="true">
+<!-- Modal Cambiar Tipo de Cálculo -->
+<div class="modal fade" id="cambiarTipoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content glass-modal p-0 border-0 shadow-2xl overflow-hidden">
-            <div class="modal-header bg-warning text-dark p-4 px-5 border-0">
+            <div class="modal-header bg-dark text-white p-4 px-5 border-0">
                 <div>
-                    <h5 class="modal-title fw-black m-0">Reajuste de Tasa Bancaria</h5>
-                    <p class="small text-dark-50 m-0">Afecta el interés de las cuotas programadas.</p>
+                    <h5 class="modal-title fw-black m-0">Cambiar Sistema de Cálculo</h5>
+                    <p class="small text-white-50 m-0">Regenera la tabla de amortización completa.</p>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4 px-5">
-                <form action="{{ url_for('prestamos.ajustar_tasa') }}" method="POST">
+                <form action="{{ url_for('prestamos.cambiar_tipo_calculo') }}" method="POST">
                     <input type="hidden" name="prestamo_id" value="{{ prestamo.id }}">
+                    
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Nuevo Método</label>
+                        <select name="nuevo_tipo" class="form-select form-select-lg bg-light border-0 fw-bold">
+                            <option value="FRANCES" {% if prestamo.tipo_calculo == 'FRANCES' %}selected{% endif %}>FRANCÉS (Cuota Fija)</option>
+                            <option value="FIJO" {% if prestamo.tipo_calculo == 'FIJO' %}selected{% endif %}>FIJO (Interés Flat)</option>
+                            <option value="INTERES_SOBRE_SALDO" {% if prestamo.tipo_calculo == 'INTERES_SOBRE_SALDO' %}selected{% endif %}>SALDO INSOLUTO (Variable)</option>
+                        </select>
+                    </div>
+
                     <div class="mb-4">
                         <label class="form-label small fw-black text-uppercase text-muted">Nueva Tasa Anual (%)</label>
-                        <input type="number" step="0.01" name="nueva_tasa" class="form-control form-control-lg bg-light border-0 fw-black text-warning" value="{{ (prestamo.tasa_interes_anual * 100)|int }}" required>
+                        <input type="number" step="0.01" name="nueva_tasa" class="form-control form-control-lg bg-light border-0 fw-black text-primary" value="{{ (prestamo.tasa_interes_anual * 100)|int }}" required>
                         <div class="form-text small fw-bold">Tasa actual: {{ (prestamo.tasa_interes_anual * 100)|int }}%</div>
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label small fw-black text-uppercase text-muted">Criterio de Aplicación</label>
-                        <select name="modo_ajuste" class="form-select form-select-lg bg-light border-0 fw-bold">
-                            <option value="FUTURE_ONLY" selected>Solo cuotas pendientes (Recomendado)</option>
-                            <option value="ALL_PERIODS">Todo el préstamo (Retroactivo)</option>
-                        </select>
-                        <div class="form-text small">"Todo el préstamo" recalcula el interés incluso de cuotas ya pagadas o vencidas.</div>
+
+                    <div class="alert alert-warning rounded-4 border-0 small fw-medium">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                        <strong>Atención:</strong> Esta acción eliminará la tabla actual y la reconstruirá. Los pagos existentes serán re-aplicados cronológicamente.
                     </div>
-                    <button type="submit" class="btn btn-warning w-100 py-3 rounded-pill fw-black shadow-lg mb-3">Ejecutar Reajuste</button>
+
+                    <button type="submit" class="btn btn-dark w-100 py-3 rounded-pill fw-black shadow-lg mb-3">Guardar Cambios</button>
+                    <button type="button" class="btn btn-light w-100 py-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Subir Documento Préstamo -->
+<div class="modal fade" id="subirDocumentoPrestamoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-modal p-0 border-0 shadow-2xl overflow-hidden">
+            <div class="modal-header bg-dark text-white p-4 px-5 border-0">
+                <div>
+                    <h5 class="modal-title fw-black m-0">Anexar Evidencia</h5>
+                    <p class="small text-white-50 m-0">El archivo se asociará directamente a este préstamo.</p>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 px-5">
+                <form action="{{ url_for('evidencias.subir') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="prestamo_id" value="{{ prestamo.id }}">
+                    <input type="hidden" name="cliente_id" value="{{ prestamo.cliente.id }}">
+                    
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Título de la Evidencia</label>
+                        <input type="text" name="titulo" class="form-control form-control-lg bg-light border-0 fw-bold" placeholder="Eje: Cheque de Desembolso, Pagaré..." required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Tipo de Evidencia</label>
+                        <select name="tipo" class="form-select form-select-lg bg-light border-0 fw-bold">
+                            <option value="DESEMBOLSO">Comprobante de Desembolso</option>
+                            <option value="CONTRATO">Contrato / Pagaré</option>
+                            <option value="GARANTIA">Documento de Garantía</option>
+                            <option value="OTRO">Otro Documento</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Seleccionar Archivo (JPG, PNG, PDF)</label>
+                        <input type="file" name="archivo" class="form-control form-control-lg bg-light border-0 fw-bold" accept=".jpg,.jpeg,.png,.pdf" required>
+                        <div class="form-text small fw-medium">Máximo: 5MB</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-black shadow-lg mb-3">Subir al Expediente</button>
+                    <button type="button" class="btn btn-light w-100 py-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Subir Documento Pago -->
+<div class="modal fade" id="subirDocumentoPagoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-modal p-0 border-0 shadow-2xl overflow-hidden">
+            <div class="modal-header bg-dark text-white p-4 px-5 border-0">
+                <div>
+                    <h5 class="modal-title fw-black m-0">Anexar Comprobante de Pago</h5>
+                    <p class="small text-white-50 m-0">Asociar evidencia al cobro de $<span id="pago_monto_display">0.00</span>.</p>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 px-5">
+                <form action="{{ url_for('evidencias.subir') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="pago_id" id="modal_pago_id">
+                    <input type="hidden" name="prestamo_id" value="{{ prestamo.id }}">
+                    <input type="hidden" name="cliente_id" value="{{ prestamo.cliente.id }}">
+                    <input type="hidden" name="tipo" value="PAGO">
+                    
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Título de la Evidencia</label>
+                        <input type="text" name="titulo" class="form-control form-control-lg bg-light border-0 fw-bold" placeholder="Eje: Captura de Transferencia, Depósito..." required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-black text-uppercase text-muted">Seleccionar Archivo (JPG, PNG, PDF)</label>
+                        <input type="file" name="archivo" class="form-control form-control-lg bg-light border-0 fw-bold" accept=".jpg,.jpeg,.png,.pdf" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-black shadow-lg mb-3">Vincular Comprobante</button>
                     <button type="button" class="btn btn-light w-100 py-3 rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
                 </form>
             </div>

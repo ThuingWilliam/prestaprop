@@ -180,7 +180,7 @@
       <div class="fci fci-gn">
         <span class="fc-lbl">Total Pagado</span>
         <span class="fc-val">${{ "{:,.2f}".format(prestamo.total_pagado) }}</span>
-        <span class="fc-sub">{{ cuotas_pagadas|length }}/{{ prestamo.tabla_pagos|length }} cuotas</span>
+        <span class="fc-sub">{% if prestamo.tipo_calculo == 'INTERES_SOBRE_SALDO' %}{{ prestamo.pagos|length }} cobros realizados{% else %}{{ cuotas_pagadas|length }}/{{ prestamo.tabla_pagos|length }} cuotas{% endif %}</span>
       </div>
       <div class="fci fci-bl">
         <span class="fc-lbl">Saldo Pendiente</span>
@@ -262,7 +262,26 @@
 
   <!-- ── PLAN DE CUOTAS ─────────────────────────────── -->
   <div class="sec">
-    <div class="sec-title"><i class="fa-solid fa-table-list fa-xs"></i> Plan de Cuotas — Tabla de Amortización</div>
+    <div class="sec-title"><i class="fa-solid fa-table-list fa-xs"></i> {% if prestamo.tipo_calculo == 'INTERES_SOBRE_SALDO' %}Análisis de Saldo Dinámico{% else %}Plan de Cuotas — Tabla de Amortización{% endif %}</div>
+    {% if prestamo.tipo_calculo == 'INTERES_SOBRE_SALDO' and not prestamo.tabla_pagos %}
+    <div style="background:var(--light); padding:1.2rem; border-radius:.6rem; text-align:center; border:1px dashed var(--border);">
+        <i class="fa-solid fa-scale-balanced" style="color:var(--amber); font-size:1.5rem; margin-bottom:.5rem;"></i>
+        <div style="font-weight:800; font-size:.8rem;">Sistema de Saldo Insoluto</div>
+        <div style="font-size:.65rem; color:var(--slate); max-width:400px; margin:.3rem auto;">
+            Este préstamo no tiene un calendario de pagos fijo. El interés se calcula dinámicamente (Saldo × Tasa) en cada abono registrado.
+        </div>
+        <div style="display:flex; justify-content:center; gap:2rem; margin-top:1rem;">
+            <div>
+                <div style="font-size:.5rem; text-transform:uppercase; font-weight:800; color:var(--slate);">Capital Pendiente</div>
+                <div style="font-weight:900; color:var(--blue);">${{ "{:,.2f}".format(prestamo.saldo_capital) }}</div>
+            </div>
+            <div>
+                <div style="font-size:.5rem; text-transform:uppercase; font-weight:800; color:var(--slate);">Interés por $1,000</div>
+                <div style="font-weight:900; color:var(--amber);">${{ "{:,.2f}".format(1000 * (prestamo.tasa_interes_anual or 0)) }}</div>
+            </div>
+        </div>
+    </div>
+    {% else %}
     <table class="rt">
       <thead>
         <tr>
@@ -288,6 +307,7 @@
         {% endfor %}
       </tbody>
     </table>
+    {% endif %}
   </div>
 
   <!-- ── PIE ────────────────────────────────────────── -->

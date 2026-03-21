@@ -1,0 +1,170 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Productos y Tasas | PrestaPro{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h3 class="fw-black m-0">Gestión de Productos</h3>
+            <p class="text-muted small fw-medium m-0">Define las tasas de interés y condiciones base para tus créditos.</p>
+        </div>
+        <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#modalNuevoProducto">
+            <i class="fa-solid fa-plus-circle me-2"></i>Nuevo Producto
+        </button>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for p in productos %}
+    <div class="col-md-6 col-xl-4">
+        <div class="nextgen-card h-100 border-0 shadow-sm {% if not p.activo %}opacity-75{% endif %}">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="p-3 rounded-4 bg-primary bg-opacity-10 text-primary">
+                    <i class="fa-solid fa-briefcase fs-4"></i>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4">
+                        <li><a class="dropdown-item fw-bold" href="#" data-bs-toggle="modal" data-bs-target="#modalEditar{{ p.id }}">Editar Configuración</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger fw-bold" href="#">Desactivar Producto</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h5 class="fw-black mb-1">{{ p.nombre }}</h5>
+            <p class="text-muted small mb-3">{{ p.descripcion or 'Sin descripción disponible.' }}</p>
+            
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <div class="p-2 rounded-3 bg-light text-center">
+                        <div class="small text-muted fw-bold text-uppercase" style="font-size: 0.6rem;">Tasa Base</div>
+                        <div class="fw-black text-primary fs-5">{{ (p.tasa_interes_anual * 100) | round(2) }}%</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-2 rounded-3 bg-light text-center">
+                        <div class="small text-muted fw-bold text-uppercase" style="font-size: 0.6rem;">Mora (Mes)</div>
+                        <div class="fw-black text-danger fs-5">{{ (p.tasa_mora_mensual * 100) | round(2) }}%</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+                <span class="small text-muted fw-bold">Mantenimiento Activo</span>
+                <span class="badge {% if p.activo %}bg-success{% else %}bg-secondary{% endif %} rounded-pill px-3">
+                    {{ 'ACTIVO' if p.activo else 'INACTIVO' }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Producto -->
+    <div class="modal fade" id="modalEditar{{ p.id }}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-dark text-white border-0 py-3">
+                    <h5 class="modal-title fw-black">Configurar {{ p.nombre }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{{ url_for('productos.editar', id=p.id) }}" method="POST">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Nombre del Producto</label>
+                                <input type="text" name="nombre" class="form-control" value="{{ p.nombre }}" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Descripción</label>
+                                <textarea name="description" class="form-control" rows="2">{{ p.descripcion }}</textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Tasa Interés Anual (%)</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" name="tasa" class="form-control" value="{{ (p.tasa_interes_anual * 100) | round(2) }}" required>
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Tasa Mora Mensual (%)</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" name="tasa_mora" class="form-control" value="{{ (p.tasa_mora_mensual * 100) | round(2) }}" required>
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Monto Mínimo</label>
+                                <input type="number" name="monto_minimo" class="form-control" value="{{ p.monto_minimo }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Monto Máximo</label>
+                                <input type="number" name="monto_maximo" class="form-control" value="{{ p.monto_maximo }}" required>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" name="activo" id="switch{{ p.id }}" {% if p.activo %}checked{% endif %}>
+                                    <label class="form-check-label fw-bold small" for="switch{{ p.id }}">Producto Habilitado</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-4 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal Nuevo Producto -->
+<div class="modal fade" id="modalNuevoProducto" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title fw-black">Crear Nuevo Producto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('productos.nuevo') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Nombre</label>
+                            <input type="text" name="nombre" class="form-control" placeholder="Ej: Crédito Micro-Emprendedor" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Tasa Anual (%)</label>
+                            <input type="number" step="0.01" name="tasa" class="form-control" value="20.00" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Mora Mensual (%)</label>
+                            <input type="number" step="0.01" name="tasa_mora" class="form-control" value="3.00" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Monto Mínimo</label>
+                            <input type="number" name="monto_minimo" class="form-control" value="1000" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Monto Máximo</label>
+                            <input type="number" name="monto_maximo" class="form-control" value="50000" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Descripción</label>
+                            <textarea name="descripcion" class="form-control" rows="2" placeholder="Detalles del producto..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Crear Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

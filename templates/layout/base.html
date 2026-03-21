@@ -66,6 +66,9 @@
                 <a href="{{ url_for('prestamos.caja') }}" class="nav-link text-white py-2 mb-1 rounded {% if 'caja' in request.endpoint %}bg-primary{% endif %}">
                     <i class="fa-solid fa-vault me-2"></i> Caja & Tesorería
                 </a>
+                <a href="{{ url_for('productos.lista') }}" class="nav-link text-white py-2 mb-1 rounded {% if 'productos' in request.endpoint %}bg-primary{% endif %}">
+                    <i class="fa-solid fa-briefcase me-2"></i> Productos & Tasas
+                </a>
                 <a href="{{ url_for('main.auditoria') }}" class="nav-link text-white py-2 mb-1 rounded {% if request.endpoint == 'main.auditoria' %}bg-primary{% endif %}">
                     <i class="fa-solid fa-fingerprint me-2"></i> Auditoría
                 </a>
@@ -145,6 +148,10 @@
             <a href="{{ url_for('prestamos.caja') }}" class="nav-link {% if 'caja' in request.endpoint %}active{% endif %}">
                 <i class="fa-solid fa-vault"></i>
                 <span>Caja & Tesorería</span>
+            </a>
+            <a href="{{ url_for('productos.lista') }}" class="nav-link {% if 'productos' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-briefcase"></i>
+                <span>Productos & Tasas</span>
             </a>
             <a href="{{ url_for('main.auditoria') }}" class="nav-link {% if request.endpoint == 'main.auditoria' %}active{% endif %}">
                 <i class="fa-solid fa-fingerprint"></i>

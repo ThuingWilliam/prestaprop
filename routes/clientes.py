@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from database import SessionLocal, registrar_auditoria
-from models import Cliente, Prestamo
-from .auth import login_required
 from models import Cliente, Prestamo, Usuario
+from .auth import login_required
 from decimal import Decimal
+from datetime import datetime
 
 clientes_bp = Blueprint('clientes', __name__)
 
@@ -21,15 +21,27 @@ def lista_clientes():
                 import uuid
                 numero_id = f"TEMP-{str(uuid.uuid4())[:8].upper()}"
             
-            ingreso_str = request.form.get('ingreso_mensual') or '0'
+            ingreso_str = request.form.get('ingreso_mensual') or ''
             try:
-                ingreso_val = Decimal(ingreso_str)
+                ingreso_val = Decimal(ingreso_str) if ingreso_str else None
             except:
-                ingreso_val = Decimal('0')
+                ingreso_val = None
 
+            liquidacion_str = request.form.get('liquidacion_promedio') or ''
+            try:
+                liquidacion_val = Decimal(liquidacion_str) if liquidacion_str else None
+            except:
+                liquidacion_val = None
+
+            fecha_inicio_str = request.form.get('fecha_inicio_laboral') or ''
+            try:
+                fecha_inicio_val = datetime.strptime(fecha_inicio_str, '%Y-%m-%d') if fecha_inicio_str else None
+            except:
+                fecha_inicio_val = None
+            
             usuario_actual = db.query(Usuario).filter(Usuario.id == session.get('usuario_id')).first()
             empresa_id_actual = usuario_actual.empresa_id if usuario_actual else None
-            
+
             nuevo_cliente = Cliente(
                 primer_nombre=request.form.get('primer_nombre'),
                 apellido=request.form.get('apellido'),
@@ -37,6 +49,8 @@ def lista_clientes():
                 telefono=request.form.get('telefono'),
                 correo=request.form.get('correo'),
                 ingreso_mensual=ingreso_val,
+                liquidacion_promedio=liquidacion_val,
+                fecha_inicio_laboral=fecha_inicio_val,
                 direccion=request.form.get('direccion'),
                 creado_por_usuario_id=session.get('usuario_id'),
                 empresa_id=empresa_id_actual
@@ -142,9 +156,21 @@ def editar_cliente(id):
             cliente.correo = request.form.get('correo')
             cliente.direccion = request.form.get('direccion')
             
-            ingreso_str = request.form.get('ingreso_mensual') or '0'
+            ingreso_str = request.form.get('ingreso_mensual') or ''
             try:
-                cliente.ingreso_mensual = Decimal(ingreso_str)
+                cliente.ingreso_mensual = Decimal(ingreso_str) if ingreso_str else None
+            except:
+                pass
+
+            liquidacion_str = request.form.get('liquidacion_promedio') or ''
+            try:
+                cliente.liquidacion_promedio = Decimal(liquidacion_str) if liquidacion_str else None
+            except:
+                pass
+
+            fecha_inicio_str = request.form.get('fecha_inicio_laboral') or ''
+            try:
+                cliente.fecha_inicio_laboral = datetime.strptime(fecha_inicio_str, '%Y-%m-%d') if fecha_inicio_str else None
             except:
                 pass
 
