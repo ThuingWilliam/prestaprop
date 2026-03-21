@@ -33,4 +33,4 @@ Thumbs.db
 neon_export.sql
 
 # Evidencias (subidas locales)
-static/uploads/evidencias/
+# static/uploads/evidencias/
